@@ -1,1067 +1,686 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Path of Idle</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#090705}
+body{color:#e8dac5;font-family:Georgia,serif;font-size:12px;overflow:hidden}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:#0a0804}::-webkit-scrollbar-thumb{background:#3a2a14;border-radius:2px}
+@keyframes floatUp{0%{opacity:1;transform:translateY(0) translateX(-50%)}100%{opacity:0;transform:translateY(-44px) translateX(-50%)}}
+@keyframes popIn{0%{opacity:0;transform:scale(.75)}60%{transform:scale(1.08)}100%{opacity:1;transform:scale(1)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes bossGlow{0%,100%{border-color:#4a2810}50%{border-color:#dd6020}}
 
-// ── FONTS ─────────────────────────────────────────────────────────────
-{
-  const l = document.createElement("link");
-  l.rel = "stylesheet";
-  l.href = "https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap";
-  document.head.appendChild(l);
-}
+#root{display:flex;flex-direction:column;height:100vh;background:#090705;position:relative}
+#hdr{display:flex;align-items:center;gap:10px;padding:5px 12px;background:#100d07;border-bottom:1px solid #3a2814;flex-shrink:0;min-height:44px}
+#hdr h1{font-size:12px;color:#f0b030;letter-spacing:3px;white-space:nowrap}
+.hb{display:flex;align-items:center;gap:3px;font-size:10px;white-space:nowrap}
+.hl{color:#786855}.hv{color:#c89028;font-weight:bold}
+#xpw{flex:1;min-width:50px}
+#xpbg{height:4px;background:#1a1308;border:1px solid #2c2015;border-radius:2px;overflow:hidden}
+#xpf{height:100%;background:#c89028;transition:width .3s}
+#xpt{font-size:9px;color:#786855;text-align:right;margin-top:1px}
+.sdot{width:6px;height:6px;border-radius:50%;background:#786855;flex-shrink:0;cursor:help}
+.sdot.ok{background:#44bb88}.sdot.saving{background:#f0b030;animation:pulse 1s infinite}
 
-// ── GLOBAL STYLES ─────────────────────────────────────────────────────
-{
-  const s = document.createElement("style");
-  s.textContent = `
-    @keyframes fadeIn   { from{opacity:0;transform:translateY(3px)} to{opacity:1;transform:translateY(0)} }
-    @keyframes bossGlow { 0%,100%{box-shadow:inset 0 0 0 2px rgba(200,80,0,.3)} 50%{box-shadow:inset 0 0 0 2px rgba(255,120,0,.8),0 0 24px rgba(180,60,0,.3)} }
-    @keyframes popIn    { 0%{opacity:0;transform:scale(.75)} 60%{transform:scale(1.08)} 100%{opacity:1;transform:scale(1)} }
-    @keyframes floatUp  { 0%{opacity:1;transform:translateY(0) translateX(-50%)} 100%{opacity:0;transform:translateY(-50px) translateX(-50%)} }
-    @keyframes pulsePt  { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.6;transform:scale(.97)} }
-    @keyframes shimmer  { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
-    * { box-sizing:border-box; margin:0; padding:0; }
-    body { background:#06050300; overflow:hidden; }
-    ::-webkit-scrollbar { width:4px; }
-    ::-webkit-scrollbar-track { background:#07060400; }
-    ::-webkit-scrollbar-thumb { background:#2a2010; border-radius:2px; }
-    button,input { font-family:'Crimson Text',serif; }
-  `;
-  document.head.appendChild(s);
-}
+#main{display:flex;flex:1;overflow:hidden;min-height:0}
 
-// ── NUMBER FORMAT ─────────────────────────────────────────────────────
-const SUFFIXES = ["","K","M","B","T","Qa","Qi","Sx","Sp","Oc","No","Dc","UDc","DDc","TDc","QaDc","QiDc","SxDc","SpDc","OcDc","NoDc","Vg","UVg"];
-function fmt(n) {
-  if (!isFinite(n) || n === undefined || n === null) return "0";
-  if (n < 0) return "-" + fmt(-n);
-  if (n < 1000) return Math.floor(n).toString();
-  let i = 0;
-  while (n >= 1000 && i < SUFFIXES.length - 1) { n /= 1000; i++; }
-  const decimals = n >= 100 ? 0 : n >= 10 ? 1 : 2;
-  return n.toFixed(decimals) + SUFFIXES[i];
-}
-const fmtDps = n => fmt(n) + "/s";
+#left{width:174px;flex-shrink:0;background:#0c0a07;border-right:1px solid #2c2015;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:3px}
+.pt{font-size:9px;color:#c89028;letter-spacing:2px;text-transform:uppercase;border-bottom:1px solid #2c2015;padding-bottom:2px;margin-top:5px;margin-bottom:2px}
+.pt:first-child{margin-top:0}
+.hpbg{height:7px;background:#1a0808;border:1px solid #380f0f;border-radius:2px;overflow:hidden}
+.hpf{height:100%;background:#aa2222;transition:width .15s}
+.sr{display:flex;justify-content:space-between;font-size:11px}
+.sk{color:#786855}.sv{font-weight:bold}
+.eqs{background:#161209;border:1px solid #2c2015;border-radius:2px;padding:3px 5px;margin-bottom:2px}
+.eqsl{font-size:8px;color:#786855}.eqsi{font-size:9px;line-height:1.3}
+.cg2{display:grid;grid-template-columns:1fr 1fr;gap:3px}
+.ci{display:flex;align-items:center;gap:4px}
+.cion{width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:bold;flex-shrink:0;border:1px solid}
+#cbadge{font-size:10px;padding:2px 7px;border:1px solid;border-radius:2px;margin-bottom:3px;display:none}
+#ainfo{font-size:9px;padding:4px 6px;background:#161209;border:1px solid #2c2015;border-radius:2px;display:none;margin-bottom:2px}
+.abtn{width:100%;padding:4px;font-size:9px;font-family:Georgia,serif;border:1px solid #c89028;background:#1a1208;color:#f0b030;cursor:pointer;margin-top:2px;letter-spacing:1px}
+.abtn:disabled{border-color:#2c2015;color:#2c2015;background:transparent;cursor:default}
+.pbtn{width:100%;padding:3px;font-size:9px;font-family:Georgia,serif;border:1px solid #ee88ee;background:#1a0820;color:#ee88ee;cursor:pointer;margin-top:2px;display:none;animation:pulse 2s infinite}
+.resetbtn{width:100%;padding:3px;font-size:9px;font-family:Georgia,serif;border:1px solid #555;background:transparent;color:#555;cursor:pointer;margin-top:4px}
+.resetbtn:hover{border-color:#888;color:#888}
 
-// ── THEME ─────────────────────────────────────────────────────────────
-const C = {
-  bg:     "#080605",
-  bg2:    "#0f0d09",
-  bg3:    "#171310",
-  panel:  "#0c0a07",
-  b:      "#2c2015",
-  bGlow:  "#5c3e1a",
-  gold:   "#c89028",
-  goldB:  "#f0b030",
-  goldD:  "#6a4e1a",
-  red:    "#cc3535",
-  blue:   "#3a78c8",
-  green:  "#38aa38",
-  purple: "#9858d8",
-  white:  "#e8dac5",
-  dim:    "#786855",
-  normal: "#c0c0c0",
-  magic:  "#8888ff",
-  rare:   "#ffff77",
-  unique: "#d47828",
-  prestige:"#ee88ee",
-  curr:   "#a89878",
-};
+#center{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+#mapbar{display:flex;align-items:center;gap:8px;padding:5px 10px;background:#0f0d09;border-bottom:1px solid #2c2015;flex-shrink:0}
+#mtbadge{font-size:10px;padding:2px 6px;background:#161209;border:1px solid #5a3e10;color:#c89028;font-weight:bold;white-space:nowrap}
+#mpbg{flex:1;height:5px;background:#161209;border:1px solid #2c2015;border-radius:1px;overflow:hidden}
+#mpf{height:100%;background:#c89028;transition:width .06s}
+#mktxt{font-size:10px;color:#786855;white-space:nowrap}
+#ebox{margin:8px 10px 0;padding:8px 10px;border:1px solid #2c2015;background:#0f0d09;flex-shrink:0;border-radius:2px}
+#ebox.boss{animation:bossGlow 1.2s infinite}
+#ename{font-size:13px;font-weight:bold}
+.emods{display:flex;gap:3px;margin-top:2px;flex-wrap:wrap}
+.emod{font-size:8px;padding:1px 4px;background:rgba(180,70,10,.2);color:#ff8844;border:1px solid #773310;border-radius:2px;font-style:italic}
+#ehpbg{height:7px;background:#1a0808;border:1px solid #2c2015;border-radius:1px;overflow:hidden;margin-top:5px;position:relative}
+#ehpf{height:100%;background:#aa1111;transition:width .08s}
+#ehpt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:bold}
+#log{flex:1;margin:6px 10px 8px;background:#0f0d09;border:1px solid #2c2015;overflow-y:auto;padding:4px 6px;border-radius:2px;min-height:0}
+.ll{font-size:11px;line-height:1.5}.ll.area{border-top:1px solid #2c2015;padding-top:2px;margin-top:2px;font-style:italic}
 
-const rarColor = r => ({ normal:C.normal, magic:C.magic, rare:C.rare, unique:C.unique, boss:"#ff8844" })[r] ?? C.normal;
-const logColor = c => ({ hit:C.white, crit:"#ffcc44", kill:C.green, level:"#88aaff", area:C.gold, drop:C.rare, unique:C.unique, currency:C.curr, passive:C.purple, prestige:C.prestige, upgrade:"#44ffcc", offline:C.goldB })[c] ?? C.white;
+#right{width:226px;flex-shrink:0;background:#0c0a07;border-left:1px solid #2c2015;display:flex;flex-direction:column;overflow:hidden}
+#tabs{display:flex;border-bottom:1px solid #2c2015;flex-shrink:0}
+.tb{flex:1;padding:6px 0;font-size:8px;font-family:Georgia,serif;letter-spacing:1px;border:none;cursor:pointer;background:transparent;color:#786855;border-bottom:2px solid transparent;transition:all .1s}
+.tb.active{background:#0f0d09;color:#f0b030;border-bottom-color:#c89028}
+#tcon{flex:1;overflow-y:auto;padding:8px;min-height:0}
 
-// ── GAME DATA ─────────────────────────────────────────────────────────
-const AREAS = [
-  { name:"The Coast",           tier:1,  kills:20,  hp:80,      dmg:8       },
-  { name:"The Ledge",           tier:2,  kills:25,  hp:200,     dmg:22      },
-  { name:"Cavern of Wrath",     tier:3,  kills:30,  hp:520,     dmg:58      },
-  { name:"Flooded Depths",      tier:4,  kills:35,  hp:1400,    dmg:160     },
-  { name:"Fellshrine Ruins",    tier:5,  kills:40,  hp:3800,    dmg:440     },
-  { name:"The Dread Thicket",   tier:6,  kills:45,  hp:1.05e4,  dmg:1200    },
-  { name:"Crystal Veins",       tier:7,  kills:50,  hp:2.9e4,   dmg:3300    },
-  { name:"Desolate Isle",       tier:8,  kills:55,  hp:8e4,     dmg:9200    },
-  { name:"Vaal Temple",         tier:9,  kills:60,  hp:2.2e5,   dmg:2.6e4   },
-  { name:"Altar of Lunaris",    tier:10, kills:70,  hp:6.2e5,   dmg:7.4e4   },
-  { name:"Dread Citadel",       tier:11, kills:80,  hp:1.8e6,   dmg:2.1e5   },
-  { name:"The Vaal Pyramid",    tier:12, kills:90,  hp:5.1e6,   dmg:6.1e5   },
-  { name:"Shaper's Domain",     tier:13, kills:100, hp:1.5e7,   dmg:1.8e6   },
-  { name:"Elder's Realm",       tier:14, kills:120, hp:4.5e7,   dmg:5.5e6   },
-  { name:"Simulacrum",          tier:15, kills:150, hp:1.4e8,   dmg:1.7e7   },
-  { name:"The Void",            tier:16, kills:180, hp:4.5e8,   dmg:5.5e7   },
-  { name:"Abyss of Eternity",   tier:17, kills:220, hp:1.5e9,   dmg:1.8e8   },
-  { name:"Chaos Pinnacle",      tier:18, kills:270, hp:5.0e9,   dmg:6.2e8   },
-  { name:"Divine Sanctum",      tier:19, kills:340, hp:1.7e10,  dmg:2.1e9   },
-  { name:"The Infinite Realm",  tier:20, kills:420, hp:6.0e10,  dmg:7.5e9   },
-];
+.pgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;margin-bottom:7px}
+.pn{aspect-ratio:1;border:2px solid #2c2015;background:#161209;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:bold;color:#2c2015;cursor:default;transition:border-color .1s,background .1s;position:relative;font-family:Georgia,serif}
+.pn.sm{border-radius:50%}.pn.no{border-radius:18%}.pn.ks{border-radius:3px}
+.pn.av{border-color:#5a3e10;color:#5a3e10;cursor:pointer}
+.pn.al{border-color:#c89028;background:#1e1508;color:#f0b030}
+.ptt{display:none;position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:#100c06;border:1px solid #4a3418;padding:6px 8px;width:150px;z-index:50;font-size:10px;color:#e8dac5;border-radius:2px;white-space:pre-line;pointer-events:none}
+.ptt b{color:#c89028;display:block;margin-bottom:2px;font-size:9px}
+.pn:hover .ptt{display:block}
 
-const PASSIVES = [
-  { id:"p0",  row:0, col:0, type:"small",    short:"Phys",  name:"Brutal Strike",     desc:"+15% Phys Damage",             eff:{ physPct:15 } },
-  { id:"p1",  row:0, col:1, type:"small",    short:"Spd",   name:"Swift Strikes",     desc:"+10% Attack Speed",            eff:{ aspdPct:10 } },
-  { id:"p2",  row:0, col:2, type:"small",    short:"Arm",   name:"Iron Skin",         desc:"+20% Armour",                  eff:{ armPct:20 } },
-  { id:"p3",  row:0, col:3, type:"small",    short:"HP",    name:"Vitality",          desc:"+20% Max HP",                  eff:{ hpPct:20 } },
-  { id:"p4",  row:0, col:4, type:"small",    short:"Crit",  name:"Lucky Hit",         desc:"+5% Crit Chance",              eff:{ crit:5 } },
-  { id:"p5",  row:1, col:0, type:"notable",  short:"Slash", name:"Master of Slashing",desc:"+35% Phys Damage",             eff:{ physPct:35 }, req:["p0"] },
-  { id:"p6",  row:1, col:1, type:"notable",  short:"Dual",  name:"Dual Strike",       desc:"+25% Attack Speed",            eff:{ aspdPct:25 }, req:["p1"] },
-  { id:"p7",  row:1, col:2, type:"notable",  short:"Fort",  name:"Steel Fortress",    desc:"+50% Armour\n+15% Resistances",eff:{ armPct:50, resist:15 }, req:["p2"] },
-  { id:"p8",  row:1, col:3, type:"notable",  short:"Body",  name:"Iron Body",         desc:"+40% Max HP",                  eff:{ hpPct:40 }, req:["p3"] },
-  { id:"p9",  row:1, col:4, type:"notable",  short:"Lethal",name:"Lethal Blade",      desc:"+10% Crit Chance\n+80% Crit Multi",eff:{ crit:10, critM:80 }, req:["p4"] },
-  { id:"p10", row:2, col:0, type:"keystone", short:"CARNAGE",name:"Avatar of Carnage",desc:"+80% Phys Damage\n4% Life Leech",eff:{ physPct:80, leech:4 }, req:["p5"] },
-  { id:"p11", row:2, col:1, type:"notable",  short:"Gale",  name:"Gale Force",        desc:"+50% Atk Speed",               eff:{ aspdPct:50 }, req:["p6"] },
-  { id:"p12", row:2, col:2, type:"notable",  short:"Undying",name:"Undying Flesh",    desc:"+60% Max HP\n+30% Resistances", eff:{ hpPct:60, resist:30 }, req:["p7"] },
-  { id:"p13", row:2, col:3, type:"notable",  short:"Blood", name:"Blood Mage",        desc:"+50% Max HP\n+40% Phys Damage", eff:{ hpPct:50, physPct:40 }, req:["p8"] },
-  { id:"p14", row:2, col:4, type:"keystone", short:"STORMS",name:"Shaper of Storms",  desc:"+25% Crit\n+200% Crit Multi",   eff:{ crit:25, critM:200 }, req:["p9"] },
-];
+.uc{background:#161209;border:1px solid #2c2015;border-radius:2px;padding:5px 7px;margin-bottom:4px}
+.uc.can{border-color:#5a3e10}
+.uh{display:flex;align-items:center;gap:4px;margin-bottom:2px}
+.uico{font-size:13px}.unm{font-size:10px;font-weight:bold;flex:1}.ulv{font-size:8px;color:#5a3e10}
+.ud{font-size:9px;color:#786855;font-style:italic;margin-bottom:2px}
+.upb{height:3px;background:#0a0806;border:1px solid #2c2015;overflow:hidden;margin-bottom:3px}
+.upbf{height:100%;background:#c89028}
+.ub{width:100%;padding:2px;font-size:9px;font-family:Georgia,serif;border:1px solid #2c2015;background:transparent;color:#2c2015;cursor:default;transition:all .1s}
+.ub.buy{border-color:#c89028;color:#f0b030;cursor:pointer;background:#1a1208}
+.ub.max{border-color:#5a3e10;color:#5a3e10}
 
-const UPGRADES = [
-  { id:"u0", name:"Sharp Blades",      icon:"⚔", desc:"+50% Phys Damage",   base:150,   mult:3.0, eff:{ physPct:50   }, max:25 },
-  { id:"u1", name:"Speed Potion",      icon:"⚡", desc:"+20% Attack Speed",  base:280,   mult:3.2, eff:{ aspdPct:20   }, max:20 },
-  { id:"u2", name:"Life Stone",        icon:"❤", desc:"+30% Max HP",        base:200,   mult:2.8, eff:{ hpPct:30     }, max:25 },
-  { id:"u3", name:"Iron Heart",        icon:"🛡", desc:"+40% Armour",        base:450,   mult:3.5, eff:{ armPct:40    }, max:20 },
-  { id:"u4", name:"Critical Mastery",  icon:"💀", desc:"+50% Crit Multi",    base:700,   mult:3.8, eff:{ critM:50     }, max:20 },
-  { id:"u5", name:"Currency Refinery", icon:"💰", desc:"+100% Currency Drop",base:1200,  mult:4.5, eff:{ currMult:1   }, max:15 },
-  { id:"u6", name:"Dark Power",        icon:"🔥", desc:"+100% Phys Damage",  base:7000,  mult:5.5, eff:{ physPct:100  }, max:15 },
-  { id:"u7", name:"Time Warp",         icon:"⏳", desc:"+50% Attack Speed",  base:2e4,   mult:7.0, eff:{ aspdPct:50   }, max:10 },
-  { id:"u8", name:"Undying Oath",      icon:"✨", desc:"+100% Max HP",       base:4.5e4, mult:7.0, eff:{ hpPct:100    }, max:10 },
-  { id:"u9", name:"Wrath of God",      icon:"🌟", desc:"+300% Phys Damage",  base:2e5,   mult:9.0, eff:{ physPct:300  }, max:8  },
-];
+.iv{background:#161209;border:1px solid #2c2015;border-radius:2px;padding:5px 6px;margin-bottom:3px;cursor:pointer}
+.iv:hover{border-color:#5a3e10}
 
-const PRESTIGE_UPGRADES = [
-  { id:"q0", name:"Warlord's Crest",  icon:"👑", desc:"All Damage ×2 (permanent)", cost:1, eff:{ dmgMult:2     } },
-  { id:"q1", name:"Immortal Soul",    icon:"💎", desc:"Max HP ×2 (permanent)",     cost:1, eff:{ hpMult:2      } },
-  { id:"q2", name:"Time Conqueror",   icon:"⏱", desc:"Attack Speed ×1.5 (perm)",  cost:1, eff:{ aspdMult:1.5  } },
-  { id:"q3", name:"Currency Baron",   icon:"🪙", desc:"Currency Drop ×3 (perm)",   cost:2, eff:{ currMult:3    } },
-  { id:"q4", name:"Divine Power",     icon:"⚡", desc:"All Stats ×2 (permanent)",  cost:3, eff:{ allMult:2     } },
-];
+#overlay{display:none;position:absolute;inset:0;background:rgba(0,0,0,.9);z-index:100;align-items:flex-start;justify-content:center;padding-top:20px;overflow-y:auto}
+#overlay.show{display:flex}
+.obox{background:#120e06;border:2px solid #5a3e10;padding:20px;max-width:620px;width:95%;border-radius:3px;margin-bottom:20px}
+.obox h2{font-size:14px;color:#f0b030;letter-spacing:2px;margin-bottom:4px;text-align:center}
+.osub{font-size:11px;color:#786855;margin-bottom:12px;text-align:center}
+.obtnrow{display:flex;gap:8px;margin-top:12px}
+.opri{flex:1;padding:8px;font-size:12px;font-weight:bold;letter-spacing:2px;border:2px solid #c89028;color:#f0b030;background:#1a1208;cursor:pointer;font-family:Georgia,serif}
+.osec{padding:8px 12px;background:transparent;border:1px solid #2c2015;color:#786855;cursor:pointer;font-family:Georgia,serif;font-size:11px}
 
-const ENEMY_POOL = ["Rhoa","Zombie","Skeleton","Sand Leaper","Goatman","Corrupted Soul","Vaal Guard","Storm Herald","Crypt Fiend","Blight Spawn","Abyssal Horror","Void Spawn"];
-const BOSS_POOL  = ["Merveil, the Twisted","Vaal Oversoul","Piety of Abomination","The Merciless King","Shavronne of Umbra","The Pale Council","Atziri, Queen of the Vaal","The Shaper","Sirus, Awakener of Worlds","The Maven"];
-const PREFIXES   = ["Brutal","Vile","Ancient","Twisted","Corrupted","Forsaken","Wretched","Eldritch","Infernal","Arcane","Blighted","Festering"];
-const SUFFIXES   = ["of Ruin","of Blight","of the Storm","of Agony","of Chaos","of Void","of Conquest","of Malice","of the Abyss","of Carnage"];
-const SLOT_NAMES = ["weapon","armor","helm","boots","ring"];
-const SLOT_BASES = {
-  weapon: ["Dagger","Sword","Axe","Mace","Bow","Staff","Wand","Blade"],
-  armor:  ["Leather Vest","Chain Mail","Plate Armour","Robe","Full Plate"],
-  helm:   ["Leather Cap","Chain Coif","Iron Helm","Wizard Hat","Crown"],
-  boots:  ["Leather Boots","Chain Boots","Iron Boots","Wizard Shoes","Swift Greaves"],
-  ring:   ["Copper Ring","Gold Ring","Sapphire Ring","Ruby Ring","Onyx Ring"],
-};
-const UNIQUES = [
-  { name:"Kaom's Heart",       slot:"armor",  stats:["+500% Max HP","All Res +20%"],            eff:{ hpPct:500 } },
-  { name:"Atziri's Disfavour", slot:"weapon", stats:["+300% Phys Dmg","Atk Speed +25%"],        eff:{ physPct:300, aspdPct:25 } },
-  { name:"Headhunter",         slot:"ring",   stats:["Steal Mods on Kill","+80% Max HP"],        eff:{ hpPct:80 } },
-  { name:"Starforge",          slot:"weapon", stats:["+400% Phys Dmg","All Phys → Lightning"],   eff:{ physPct:400 } },
-  { name:"Skin of the Lords",  slot:"armor",  stats:["+150% All Res","Bonus Passive"],            eff:{ hpPct:200, armPct:150 } },
-  { name:"The Saviour",        slot:"weapon", stats:["+200% Phys Dmg","Atk Speed +30%"],         eff:{ physPct:200, aspdPct:30 } },
-  { name:"Shaper's Touch",     slot:"ring",   stats:["+300% Max HP","All Damage +20%"],           eff:{ hpPct:300, physPct:20 } },
-  { name:"Kaom's Roots",       slot:"boots",  stats:["+400% Max HP","Cannot be Frozen"],          eff:{ hpPct:400 } },
-];
-const CURRENCY = [
-  { id:"alt",   short:"Alt",  name:"Orb of Alteration", weight:50, color:"#5566cc" },
-  { id:"alch",  short:"Alch", name:"Orb of Alchemy",    weight:20, color:"#cc7722" },
-  { id:"chaos", short:"Chaos",name:"Chaos Orb",         weight:5,  color:"#bb3388" },
-  { id:"exalt", short:"Ex",   name:"Exalted Orb",       weight:1,  color:"#f0b030" },
-];
-const CURR_VAL = { alt:1, alch:4, chaos:40, exalt:400 };
+.cg6{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ccard{background:#100c06;border:1px solid #3a2810;border-radius:3px;padding:10px 8px;cursor:pointer;text-align:center;transition:border-color .15s}
+.ccard:hover{border-color:#c89028}
+.ccico{font-size:20px;margin-bottom:4px}
+.ccnm{font-size:11px;font-weight:bold;letter-spacing:1px;margin-bottom:2px}
+.cctg{font-size:9px;color:#786855;font-style:italic;margin-bottom:4px}
+.ccbn{font-size:9px;color:#a89878;line-height:1.4}
 
-// ── HELPERS ───────────────────────────────────────────────────────────
-const rnd   = (a, b) => a + Math.random() * (b - a);
-const ri    = (a, b) => Math.floor(rnd(a, b + 1));
-const pick  = a => a[Math.floor(Math.random() * a.length)];
-const cTotal= c => (c.alt||0)*CURR_VAL.alt + (c.alch||0)*CURR_VAL.alch + (c.chaos||0)*CURR_VAL.chaos + (c.exalt||0)*CURR_VAL.exalt;
-const upgC  = (d, lv) => Math.floor(d.base * Math.pow(d.mult, lv));
-const itemScore = item => {
-  if (!item?.eff) return 0;
-  const e = item.eff;
-  return (e.physPct||0)*3 + (e.hpPct||0)*1.5 + (e.armPct||0) + (e.aspdPct||0)*2;
-};
+.ag3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.acard{background:#161209;border:1px solid #3a2810;border-radius:3px;padding:10px 8px;cursor:pointer;text-align:center;transition:border-color .15s}
+.acard:hover{border-color:#c89028}
+.ang{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.anc{background:#161209;border:1px solid #2c2015;border-radius:3px;padding:8px;cursor:pointer;transition:border-color .15s}
+.anc:hover:not(.taken):not(.locked){border-color:#c89028}
+.anc.taken{border-color:#c89028;background:#1e1508;cursor:default}
+.anc.locked{opacity:.4;cursor:default}
+.anname{font-size:10px;font-weight:bold;margin-bottom:2px}
+.antype{font-size:9px;color:#786855;font-style:italic;margin-bottom:3px}
+.andesc{font-size:9px;color:#a89878;line-height:1.4;white-space:pre-line}
 
-function genItem(tier, rarOvr, pLvl = 0) {
-  const mult = 1 + pLvl * 0.6;
-  if (rarOvr === "unique" || Math.random() < 0.012) {
-    const u = pick(UNIQUES);
-    const eff = {};
-    for (const [k, v] of Object.entries(u.eff)) eff[k] = v * mult;
-    return { ...u, rarity:"unique", eff };
+.pug{background:#161209;border:1px solid #2c2015;border-radius:2px;padding:6px 8px;display:flex;align-items:center;gap:8px;margin-bottom:4px}
+
+.fdmg{position:absolute;pointer-events:none;z-index:200;font-size:12px;font-weight:bold;animation:floatUp .9s ease forwards;transform:translateX(-50%)}
+#notifarea{position:absolute;top:48px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:4px;align-items:center;pointer-events:none;z-index:300}
+.notif{background:rgba(6,4,2,.97);padding:4px 16px;font-size:11px;font-weight:bold;letter-spacing:2px;animation:popIn .2s ease;border-radius:2px}
+</style>
+</head>
+<body>
+<div id="root">
+<div id="hdr">
+  <h1>PATH OF IDLE</h1>
+  <div class="hb"><span class="hl">Lv</span><span class="hv" id="hlv">1</span></div>
+  <div class="hb"><span class="hl">DPS</span><span class="hv" id="hdps">0/s</span></div>
+  <div class="hb"><span class="hl">Kills</span><span class="hv" id="hkills">0</span></div>
+  <div class="hb"><span class="hl">Prestige</span><span class="hv" id="hpres" style="color:#ee88ee">0</span></div>
+  <div id="xpw"><div id="xpbg"><div id="xpf" style="width:0%"></div></div><div id="xpt">0/100</div></div>
+  <div class="hb"><span class="hl" id="harea">The Coast T1</span></div>
+  <div class="sdot" id="sdot" title="Save status"></div>
+</div>
+<div id="main">
+  <div id="left">
+    <div id="cbadge"></div>
+    <div class="pt">Character</div>
+    <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:2px"><span class="sk">Life</span><span id="hptxt" style="color:#cc3535;font-weight:bold">200/200</span></div>
+    <div class="hpbg"><div class="hpf" id="hpbar" style="width:100%"></div></div>
+    <div style="margin-top:4px;display:flex;flex-direction:column;gap:2px">
+      <div class="sr"><span class="sk">Phys</span><span class="sv" id="sdmg">5-12</span></div>
+      <div class="sr"><span class="sk">DPS</span><span class="sv" id="sdps" style="color:#f0b030">0/s</span></div>
+      <div class="sr"><span class="sk">Spd</span><span class="sv" id="saspd">1.20/s</span></div>
+      <div class="sr"><span class="sk">Crit</span><span class="sv" id="scrit">5%/150%</span></div>
+      <div class="sr"><span class="sk">Arm</span><span class="sv" id="sarm">50</span></div>
+      <div class="sr"><span class="sk">Curr</span><span class="sv" id="scurr" style="color:#a89878">0</span></div>
+      <div class="sr"><span class="sk">×Mult</span><span class="sv" id="scmult" style="color:#a89878">×1.0</span></div>
+    </div>
+    <div id="ainfo"><div style="color:#786855;font-size:8px">Ascendancy</div><div id="aname" style="font-weight:bold;margin-top:1px"></div><div id="ataken" style="color:#786855;margin-top:1px;font-size:9px"></div></div>
+    <button class="abtn" id="ascbtn" onclick="openOverlay('asc')" disabled>ASCENDANCY</button>
+    <button class="pbtn" id="pbtn" onclick="openOverlay('prestige')">PRESTIGE (<span id="hpp">0</span>pt)</button>
+    <div class="pt">Equipment</div>
+    <div id="eqslots"></div>
+    <div class="pt">Currency</div>
+    <div class="cg2" id="currgrid"></div>
+    <button class="resetbtn" onclick="confirmReset()">Reset Save</button>
+  </div>
+  <div id="center">
+    <div id="mapbar">
+      <div id="mtbadge">T1 MAP</div>
+      <div id="mpbg"><div id="mpf" style="width:0%"></div></div>
+      <div id="mktxt"><span id="mkc">0</span>/<span id="mkt">20</span> kills</div>
+    </div>
+    <div id="ebox">
+      <div style="display:flex;align-items:baseline;gap:8px"><span id="ename" style="color:#c0c0c0">Rhoa</span><div class="emods" id="emods"></div></div>
+      <div id="ehpbg"><div id="ehpf" style="width:100%"></div><div id="ehpt"></div></div>
+    </div>
+    <div id="log"></div>
+  </div>
+  <div id="right">
+    <div id="tabs">
+      <button class="tb active" onclick="setTab('passive')">PASSIVES</button>
+      <button class="tb" onclick="setTab('upgrade')">UPGRADES</button>
+      <button class="tb" onclick="setTab('inventory')">LOOT</button>
+    </div>
+    <div id="tcon"></div>
+  </div>
+</div>
+<div id="overlay" onclick="overlayBgClick(event)"><div class="obox" id="obox"></div></div>
+<div id="floatarea" style="position:absolute;inset:0;pointer-events:none;z-index:200;overflow:hidden"></div>
+<div id="notifarea"></div>
+</div>
+
+<script>
+// ── FORMAT ─────────────────────────────────────────────────────────────────
+const SFX=["","K","M","B","T","Qa","Qi","Sx","Sp","Oc","No","Dc","UDc"];
+function fmt(n){if(!isFinite(n)||n==null)return"0";if(n<0)return"-"+fmt(-n);if(n<1000)return Math.floor(n)+"";let i=0;while(n>=1000&&i<SFX.length-1){n/=1000;i++;}return(n>=100?Math.floor(n):n>=10?n.toFixed(1):n.toFixed(2))+SFX[i];}
+
+// ── SAVE / LOAD via localStorage ────────────────────────────────────────────
+const SAVE_KEY = "poe_idle_v5_local";
+
+function setSdot(st){const d=document.getElementById("sdot");if(d)d.className="sdot"+(st==="ok"?" ok":st==="saving"?" saving":"");}
+
+function saveGame(){
+  if(!gs)return;
+  setSdot("saving");
+  try{
+    localStorage.setItem(SAVE_KEY, JSON.stringify({...gs, enemy:null}));
+    setSdot("ok");
+  }catch(e){
+    setSdot("");
+    console.warn("Save failed:", e);
   }
-  const rarity = rarOvr || (Math.random() < .07 ? "rare" : Math.random() < .25 ? "magic" : "normal");
-  const slot   = pick(SLOT_NAMES);
-  const base   = pick(SLOT_BASES[slot]);
-  const pB     = Math.floor((tier * 12 + ri(10,40)) * mult * (rarity === "rare" ? 1.8 : 1));
-  const hB     = Math.floor((tier * 15 + ri(15,50)) * mult * (rarity === "rare" ? 1.8 : 1));
-  let name, stats = [], eff = {};
+}
 
-  if (rarity === "normal") {
-    name = base;
-  } else if (rarity === "magic") {
-    name = `${pick(PREFIXES)} ${base}`;
-    if (slot === "weapon")                 { stats = [`+${pB}% Phys Damage`];   eff = { physPct:pB }; }
-    else if (slot === "armor"||slot==="helm") { stats = [`+${hB}% Max HP`];    eff = { hpPct:hB }; }
-    else                                   { stats = [`+${Math.floor(pB*.7)}% Phys`]; eff = { physPct:Math.floor(pB*.7) }; }
-  } else {
-    name = `${pick(PREFIXES)} ${base} ${pick(SUFFIXES)}`;
-    const aB = ri(15, 40);
-    if (slot === "weapon") {
-      const sB = ri(15, 35);
-      stats = [`+${pB}% Phys Damage`, `+${sB}% Atk Speed`];
-      eff   = { physPct:pB, aspdPct:sB };
-    } else if (slot === "armor"||slot==="helm") {
-      stats = [`+${hB}% Max HP`, `+${aB}% Armour`];
-      eff   = { hpPct:hB, armPct:aB };
-    } else {
-      stats = [`+${Math.floor(pB*.9)}% Phys`, `+${hB}% Max HP`];
-      eff   = { physPct:Math.floor(pB*.9), hpPct:hB };
+function loadGame(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(!raw)return null;
+    return JSON.parse(raw);
+  }catch(e){return null;}
+}
+
+let saveTimer=null;
+function sched(){clearTimeout(saveTimer);saveTimer=setTimeout(saveGame,3000);}
+
+function confirmReset(){
+  if(confirm("Are you sure you want to reset ALL progress? This cannot be undone.")){
+    localStorage.removeItem(SAVE_KEY);
+    location.reload();
+  }
+}
+
+// ── ALL 6 CLASSES ───────────────────────────────────────────────────────────
+const CLASSES={
+  marauder:{name:"Marauder",ico:"⚔",color:"#cc4422",tag:"Strength",
+    bonus:"+30% Phys, +50% Max HP",se:{physPct:30,hpPct:50},
+    asc:{
+      juggernaut:{name:"Juggernaut",color:"#cc6622",desc:"Unstoppable. Unyielding. A fortress in motion.",nodes:[
+        {id:"j0",t:"Minor",cost:1,name:"Unbreakable",desc:"+100% Armour\n+20% Phys Reduction",eff:{armPct:100}},
+        {id:"j1",t:"Minor",cost:1,name:"Unflinching",desc:"+5% Crit\n+50% Crit Multi",eff:{crit:5,critM:50},req:["j0"]},
+        {id:"j2",t:"Notable",cost:2,name:"Undeniable",desc:"+40% Atk Speed\n+30% Phys",eff:{aspdPct:40,physPct:30},req:["j0"]},
+        {id:"j3",t:"Keystone",cost:2,name:"UNYIELDING",desc:"+500% Armour\nCannot be Stunned",eff:{armPct:500},req:["j1","j2"]},
+      ]},
+      berserker:{name:"Berserker",color:"#aa2222",desc:"Savage fury unleashed. More power, more risk.",nodes:[
+        {id:"b0",t:"Minor",cost:1,name:"War Bringer",desc:"+60% Phys\n+15% Atk Speed",eff:{physPct:60,aspdPct:15}},
+        {id:"b1",t:"Minor",cost:1,name:"Flicker Strike",desc:"+30% Atk Speed\n×1.5 Crit Multi",eff:{aspdPct:30,critMx:1.5},req:["b0"]},
+        {id:"b2",t:"Notable",cost:2,name:"Aspect of Carnage",desc:"+100% Phys",eff:{physPct:100},req:["b0"]},
+        {id:"b3",t:"Keystone",cost:2,name:"RITE OF RUIN",desc:"+200% Phys\n+50% Atk Speed",eff:{physPct:200,aspdPct:50},req:["b1","b2"]},
+      ]},
+      chieftain:{name:"Chieftain",color:"#cc8822",desc:"Ancestral fire warlord. Totems and flame.",nodes:[
+        {id:"c0",t:"Minor",cost:1,name:"Hinekora's Unease",desc:"+50% Max HP\n+20% All Res",eff:{hpPct:50,resist:20}},
+        {id:"c1",t:"Minor",cost:1,name:"Tawhoa's Chosen",desc:"+30% Phys\n6% Life Leech",eff:{physPct:30,leech:6},req:["c0"]},
+        {id:"c2",t:"Notable",cost:2,name:"Arohongui's Chosen",desc:"+60% Max HP\n+30% All Res",eff:{hpPct:60,resist:30},req:["c0"]},
+        {id:"c3",t:"Keystone",cost:2,name:"NGAMAHU'S FLAME",desc:"+150% Phys\nCurr Drop ×2",eff:{physPct:150,currMult:2},req:["c1","c2"]},
+      ]},
     }
-  }
-  return { name, slot, rarity, stats, eff };
-}
+  },
+  ranger:{name:"Ranger",ico:"🏹",color:"#22aa44",tag:"Dexterity",
+    bonus:"+20% Atk Speed, +10% Crit",se:{aspdPct:20,crit:10},
+    asc:{
+      deadeye:{name:"Deadeye",color:"#228844",desc:"The perfect shot. Precision and lethal crits.",nodes:[
+        {id:"de0",t:"Minor",cost:1,name:"Powerful Precision",desc:"+15% Crit\n+50% Crit Multi",eff:{crit:15,critM:50}},
+        {id:"de1",t:"Minor",cost:1,name:"Gathering Winds",desc:"+40% Atk Speed\n+15% Phys",eff:{aspdPct:40,physPct:15},req:["de0"]},
+        {id:"de2",t:"Notable",cost:2,name:"Tailwind",desc:"+60% Atk Speed\n+20% Phys",eff:{aspdPct:60,physPct:20},req:["de0"]},
+        {id:"de3",t:"Keystone",cost:2,name:"RUPTURE",desc:"+25% Crit\n+300% Crit Multi",eff:{crit:25,critM:300},req:["de1","de2"]},
+      ]},
+      pathfinder:{name:"Pathfinder",color:"#228866",desc:"Master of flasks and nature's bounty.",nodes:[
+        {id:"pf0",t:"Minor",cost:1,name:"Nature's Boon",desc:"Curr ×1.5\n+20% Max HP",eff:{currMult:1.5,hpPct:20}},
+        {id:"pf1",t:"Minor",cost:1,name:"Master Herbalist",desc:"Curr ×2\n+20% Atk Speed",eff:{currMult:2,aspdPct:20},req:["pf0"]},
+        {id:"pf2",t:"Notable",cost:2,name:"Nature's Reprisal",desc:"+50% Phys\n+20% Crit",eff:{physPct:50,crit:20},req:["pf0"]},
+        {id:"pf3",t:"Keystone",cost:2,name:"MASTER ALCHEMIST",desc:"Curr ×5\n+40% Atk Speed",eff:{currMult:5,aspdPct:40},req:["pf1","pf2"]},
+      ]},
+      raider:{name:"Raider",color:"#aacc22",desc:"Pure speed. Frenzy and onslaught incarnate.",nodes:[
+        {id:"ra0",t:"Minor",cost:1,name:"Rapid Assault",desc:"+30% Atk Speed\n+20% Phys",eff:{aspdPct:30,physPct:20}},
+        {id:"ra1",t:"Minor",cost:1,name:"Way of the Poacher",desc:"+50% Atk Speed\n+10% Crit",eff:{aspdPct:50,crit:10},req:["ra0"]},
+        {id:"ra2",t:"Notable",cost:2,name:"Avatar of the Slaughter",desc:"+30% Phys\n+30% Crit Multi",eff:{physPct:30,critM:30},req:["ra0"]},
+        {id:"ra3",t:"Keystone",cost:2,name:"AVATAR OF VEIL",desc:"+80% Atk Speed\n+50% Phys",eff:{aspdPct:80,physPct:50},req:["ra1","ra2"]},
+      ]},
+    }
+  },
+  witch:{name:"Witch",ico:"🔮",color:"#8844cc",tag:"Intelligence",
+    bonus:"+15% Crit Chance, +100% Crit Multi",se:{crit:15,critM:100},
+    asc:{
+      necromancer:{name:"Necromancer",color:"#6644aa",desc:"Commander of the dead. Death feeds power.",nodes:[
+        {id:"ne0",t:"Minor",cost:1,name:"Commander of Darkness",desc:"+25% Crit\n+50% Crit Multi",eff:{crit:25,critM:50}},
+        {id:"ne1",t:"Minor",cost:1,name:"Bone Sculptor",desc:"+40% Max HP\n+20% Armour",eff:{hpPct:40,armPct:20},req:["ne0"]},
+        {id:"ne2",t:"Notable",cost:2,name:"Mistress of Sacrifice",desc:"+80% Crit Multi\n8% Life Leech",eff:{critM:80,leech:8},req:["ne0"]},
+        {id:"ne3",t:"Keystone",cost:2,name:"ESSENCE GLUTTON",desc:"+200% Crit Multi\n+50% Max HP",eff:{critM:200,hpPct:50},req:["ne1","ne2"]},
+      ]},
+      occultist:{name:"Occultist",color:"#9944bb",desc:"Dark forbidden power. Chaos and curses.",nodes:[
+        {id:"oc0",t:"Minor",cost:1,name:"Forbidden Power",desc:"+60% Crit Multi\n+15% Crit",eff:{critM:60,crit:15}},
+        {id:"oc1",t:"Minor",cost:1,name:"Malediction",desc:"+30% Phys\n+10% Crit",eff:{physPct:30,crit:10},req:["oc0"]},
+        {id:"oc2",t:"Notable",cost:2,name:"Vile Bastion",desc:"+60% Max HP\n+20% All Res",eff:{hpPct:60,resist:20},req:["oc0"]},
+        {id:"oc3",t:"Keystone",cost:2,name:"WICKED WARD",desc:"+150% Crit Multi\nCurr Drop ×2",eff:{critM:150,currMult:2},req:["oc1","oc2"]},
+      ]},
+      elementalist:{name:"Elementalist",color:"#cc4488",desc:"All elements bend to your will.",nodes:[
+        {id:"el0",t:"Minor",cost:1,name:"Shaper of Desolation",desc:"+50% Phys\n+20% Crit Multi",eff:{physPct:50,critM:20}},
+        {id:"el1",t:"Minor",cost:1,name:"Beacon of Ruin",desc:"+40% Phys\n+15% Atk Speed",eff:{physPct:40,aspdPct:15},req:["el0"]},
+        {id:"el2",t:"Notable",cost:2,name:"Pendulum of Destruction",desc:"+30% Crit\n+100% Crit Multi",eff:{crit:30,critM:100},req:["el0"]},
+        {id:"el3",t:"Keystone",cost:2,name:"MASTERMIND OF DISCORD",desc:"+200% Phys\n+20% Crit",eff:{physPct:200,crit:20},req:["el1","el2"]},
+      ]},
+    }
+  },
+  shadow:{name:"Shadow",ico:"🗡",color:"#44bbaa",tag:"Dex / Int",
+    bonus:"+20% Crit Chance, +20% Atk Speed",se:{crit:20,aspdPct:20},
+    asc:{
+      assassin:{name:"Assassin",color:"#33aa99",desc:"Strike unseen. Every hit a killing blow.",nodes:[
+        {id:"as0",t:"Minor",cost:1,name:"Noxious Strike",desc:"+15% Crit\n+60% Crit Multi",eff:{crit:15,critM:60}},
+        {id:"as1",t:"Minor",cost:1,name:"Unstable Infusion",desc:"+25% Atk Speed\n+20% Phys",eff:{aspdPct:25,physPct:20},req:["as0"]},
+        {id:"as2",t:"Notable",cost:2,name:"Toxic Delivery",desc:"+20% Crit\n8% Life Leech",eff:{crit:20,leech:8},req:["as0"]},
+        {id:"as3",t:"Keystone",cost:2,name:"DEADLY INFUSION",desc:"+30% Crit\n+300% Crit Multi",eff:{crit:30,critM:300},req:["as1","as2"]},
+      ]},
+      trickster:{name:"Trickster",color:"#2288aa",desc:"Swift and elusive. Tricks the enemy to death.",nodes:[
+        {id:"tr0",t:"Minor",cost:1,name:"Swift Killer",desc:"+30% Atk Speed\n+30% Max HP",eff:{aspdPct:30,hpPct:30}},
+        {id:"tr1",t:"Minor",cost:1,name:"Weave the Arcane",desc:"+40% Atk Speed\nCurr ×1.5",eff:{aspdPct:40,currMult:1.5},req:["tr0"]},
+        {id:"tr2",t:"Notable",cost:2,name:"Patient Reaper",desc:"+50% Phys\n+40% Max HP",eff:{physPct:50,hpPct:40},req:["tr0"]},
+        {id:"tr3",t:"Keystone",cost:2,name:"GHOST DANCE",desc:"+100% Atk Speed\n+50% Max HP",eff:{aspdPct:100,hpPct:50},req:["tr1","tr2"]},
+      ]},
+      saboteur:{name:"Saboteur",color:"#448822",desc:"Traps and mines. Destruction from afar.",nodes:[
+        {id:"sa0",t:"Minor",cost:1,name:"Born in the Shadows",desc:"+50% Armour\n+15% Crit",eff:{armPct:50,crit:15}},
+        {id:"sa1",t:"Minor",cost:1,name:"Chain Reaction",desc:"+80% Phys\n+20% Atk Speed",eff:{physPct:80,aspdPct:20},req:["sa0"]},
+        {id:"sa2",t:"Notable",cost:2,name:"Bomb Specialist",desc:"+100% Phys\n+20% Crit",eff:{physPct:100,crit:20},req:["sa0"]},
+        {id:"sa3",t:"Keystone",cost:2,name:"PERFECT CRIME",desc:"+200% Phys\nCurr ×2",eff:{physPct:200,currMult:2},req:["sa1","sa2"]},
+      ]},
+    }
+  },
+  templar:{name:"Templar",ico:"🛡",color:"#ddaa22",tag:"Str / Int",
+    bonus:"+20% Phys, +20% Max HP, +15% Crit",se:{physPct:20,hpPct:20,crit:15},
+    asc:{
+      inquisitor:{name:"Inquisitor",color:"#ddaa22",desc:"Holy fire burns all heretics.",nodes:[
+        {id:"in0",t:"Minor",cost:1,name:"Righteous Providence",desc:"+20% Crit\n+80% Crit Multi",eff:{crit:20,critM:80}},
+        {id:"in1",t:"Minor",cost:1,name:"Inevitable Judgement",desc:"+30% Phys\n+25% Atk Speed",eff:{physPct:30,aspdPct:25},req:["in0"]},
+        {id:"in2",t:"Notable",cost:2,name:"Instruments of Virtue",desc:"+60% Phys\n+20% Crit",eff:{physPct:60,crit:20},req:["in0"]},
+        {id:"in3",t:"Keystone",cost:2,name:"AUGURY OF PENITENCE",desc:"+200% Phys\n+50% Crit Multi",eff:{physPct:200,critM:50},req:["in1","in2"]},
+      ]},
+      hierophant:{name:"Hierophant",color:"#aaaa22",desc:"Master of totems and divine conduits.",nodes:[
+        {id:"hi0",t:"Minor",cost:1,name:"Pursuit of Faith",desc:"+60% Max HP\n+20% Armour",eff:{hpPct:60,armPct:20}},
+        {id:"hi1",t:"Minor",cost:1,name:"Conviction of Power",desc:"Curr ×2\n+20% Phys",eff:{currMult:2,physPct:20},req:["hi0"]},
+        {id:"hi2",t:"Notable",cost:2,name:"Divine Guidance",desc:"+80% Max HP\n+30% All Res",eff:{hpPct:80,resist:30},req:["hi0"]},
+        {id:"hi3",t:"Keystone",cost:2,name:"ILLUMINATED DEVOTION",desc:"+150% Max HP\nCurr ×3",eff:{hpPct:150,currMult:3},req:["hi1","hi2"]},
+      ]},
+      guardian:{name:"Guardian",color:"#cc9922",desc:"Protector. Impenetrable devotion.",nodes:[
+        {id:"gu0",t:"Minor",cost:1,name:"Radiant Faith",desc:"+80% Armour\n+30% All Res",eff:{armPct:80,resist:30}},
+        {id:"gu1",t:"Minor",cost:1,name:"Unwavering Faith",desc:"+50% Max HP\n+40% Armour",eff:{hpPct:50,armPct:40},req:["gu0"]},
+        {id:"gu2",t:"Notable",cost:2,name:"Bastion of Hope",desc:"+100% Armour\n5% Life Leech",eff:{armPct:100,leech:5},req:["gu0"]},
+        {id:"gu3",t:"Keystone",cost:2,name:"HAMMER OF GOD",desc:"+100% Phys\n+200% Armour",eff:{physPct:100,armPct:200},req:["gu1","gu2"]},
+      ]},
+    }
+  },
+  duelist:{name:"Duelist",ico:"🤺",color:"#cc3366",tag:"Str / Dex",
+    bonus:"+25% Phys, +20% Atk Speed",se:{physPct:25,aspdPct:20},
+    asc:{
+      slayer:{name:"Slayer",color:"#cc3333",desc:"Culling strikes. Overkill everything.",nodes:[
+        {id:"sl0",t:"Minor",cost:1,name:"Bane of Legends",desc:"+40% Phys\n+20% Atk Speed",eff:{physPct:40,aspdPct:20}},
+        {id:"sl1",t:"Minor",cost:1,name:"Headsman",desc:"+60% Phys\n5% Life Leech",eff:{physPct:60,leech:5},req:["sl0"]},
+        {id:"sl2",t:"Notable",cost:2,name:"Impact",desc:"+80% Phys\n+30% Atk Speed",eff:{physPct:80,aspdPct:30},req:["sl0"]},
+        {id:"sl3",t:"Keystone",cost:2,name:"OVERWHELM",desc:"+250% Phys\n8% Life Leech",eff:{physPct:250,leech:8},req:["sl1","sl2"]},
+      ]},
+      gladiator:{name:"Gladiator",color:"#cc5522",desc:"Blood and sand. Bleeding and blocking.",nodes:[
+        {id:"gl0",t:"Minor",cost:1,name:"Gratuitous Violence",desc:"+50% Phys\n+15% Atk Speed",eff:{physPct:50,aspdPct:15}},
+        {id:"gl1",t:"Minor",cost:1,name:"Outmatch and Outlast",desc:"+50% Armour\n+25% Max HP",eff:{armPct:50,hpPct:25},req:["gl0"]},
+        {id:"gl2",t:"Notable",cost:2,name:"Blood in the Eyes",desc:"+70% Phys\n+25% Crit",eff:{physPct:70,crit:25},req:["gl0"]},
+        {id:"gl3",t:"Keystone",cost:2,name:"ARENA MASTER",desc:"+150% Phys\n+80% Atk Speed",eff:{physPct:150,aspdPct:80},req:["gl1","gl2"]},
+      ]},
+      champion:{name:"Champion",color:"#cc7722",desc:"Fortify and conquer. An unbreakable warrior.",nodes:[
+        {id:"ch0",t:"Minor",cost:1,name:"Conqueror",desc:"+60% Armour\n+30% Max HP",eff:{armPct:60,hpPct:30}},
+        {id:"ch1",t:"Minor",cost:1,name:"Worthy Foe",desc:"+40% Phys\n+20% Atk Speed",eff:{physPct:40,aspdPct:20},req:["ch0"]},
+        {id:"ch2",t:"Notable",cost:2,name:"Inspirational",desc:"+80% Max HP\n+40% Armour",eff:{hpPct:80,armPct:40},req:["ch0"]},
+        {id:"ch3",t:"Keystone",cost:2,name:"UNSTOPPABLE HERO",desc:"+100% Phys\n+100% Max HP",eff:{physPct:100,hpPct:100},req:["ch1","ch2"]},
+      ]},
+    }
+  },
+  scion:{name:"Scion",ico:"✨",color:"#88aaff",tag:"Str / Dex / Int",
+    bonus:"+15% All Stats (universal)",se:{physPct:15,aspdPct:15,hpPct:15,crit:10},
+    asc:{
+      ascendant:{name:"Ascendant",color:"#88aaff",desc:"Mirror of Kalandra. Master of all paths.",nodes:[
+        {id:"ac0",t:"Minor",cost:1,name:"Path of the Marauder",desc:"+40% Phys\n+30% Max HP",eff:{physPct:40,hpPct:30}},
+        {id:"ac1",t:"Minor",cost:1,name:"Path of the Ranger",desc:"+30% Atk Speed\n+15% Crit",eff:{aspdPct:30,crit:15},req:["ac0"]},
+        {id:"ac2",t:"Notable",cost:2,name:"Path of the Witch",desc:"+80% Crit Multi\n+25% Crit",eff:{critM:80,crit:25},req:["ac0"]},
+        {id:"ac3",t:"Keystone",cost:2,name:"CONVERGENCE",desc:"+100% Phys\n+80% Atk Speed\n+100% Max HP",eff:{physPct:100,aspdPct:80,hpPct:100},req:["ac1","ac2"]},
+      ]},
+      paragon:{name:"Paragon of Calamity",color:"#aabb55",desc:"Absorb all damage. Return calamity.",nodes:[
+        {id:"pa0",t:"Minor",cost:1,name:"Calamitous Presence",desc:"+50% Phys\n+50% Max HP",eff:{physPct:50,hpPct:50}},
+        {id:"pa1",t:"Minor",cost:1,name:"Armaments of Calamity",desc:"+40% Armour\n+25% All Res",eff:{armPct:40,resist:25},req:["pa0"]},
+        {id:"pa2",t:"Notable",cost:2,name:"Eye of Calamity",desc:"+60% Crit Multi\nCurr ×2",eff:{critM:60,currMult:2},req:["pa0"]},
+        {id:"pa3",t:"Keystone",cost:2,name:"HEART OF CALAMITY",desc:"+200% Phys\n+100% Max HP\nCurr ×2",eff:{physPct:200,hpPct:100,currMult:2},req:["pa1","pa2"]},
+      ]},
+      polymath:{name:"Polymath",color:"#55aacc",desc:"Knowledge is power. All stats multiply.",nodes:[
+        {id:"po0",t:"Minor",cost:1,name:"Born to Lead",desc:"+30% All Stats",eff:{physPct:30,aspdPct:30,hpPct:30}},
+        {id:"po1",t:"Minor",cost:1,name:"Grand Spectrum",desc:"Curr ×2\n+20% Crit",eff:{currMult:2,crit:20},req:["po0"]},
+        {id:"po2",t:"Notable",cost:2,name:"Inspired Learning",desc:"+50% All Stats",eff:{physPct:50,aspdPct:50,hpPct:50},req:["po0"]},
+        {id:"po3",t:"Keystone",cost:2,name:"SOLARIS AND LUNARIS",desc:"+100% All Stats\nCurr ×3",eff:{physPct:100,aspdPct:100,hpPct:100,currMult:3},req:["po1","po2"]},
+      ]},
+    }
+  },
+};
 
-function genEnemy(area, killsLeft, pLvl = 0) {
-  const pm = Math.pow(2.5, pLvl);
-  if (killsLeft <= 1) {
-    return { name:pick(BOSS_POOL), rarity:"boss", maxHp:area.hp*15*pm, hp:area.hp*15*pm, dmg:area.dmg*4*pm, mods:["BOSS"] };
-  }
-  const r = Math.random();
-  const rarity = r < .03 ? "rare" : r < .2 ? "magic" : "normal";
-  const rHp    = rarity === "magic" ? 5 : rarity === "rare" ? 12 : 1;
-  const mods   = rarity === "rare"  ? [pick(["Burning","Frozen","Charged","Empowered"]), pick(["Regeneration","Barrier"])]
-               : rarity === "magic" ? [pick(["Burning","Frozen","Empowered"])] : [];
-  const base   = pick(ENEMY_POOL);
-  const name   = rarity === "rare"  ? `${pick(PREFIXES)} ${base} ${pick(SUFFIXES)}`
-               : rarity === "magic" ? `Mutant ${base}` : base;
-  return { name, rarity, maxHp:area.hp*rHp*pm, hp:area.hp*rHp*pm, dmg:area.dmg*(rarity==="rare"?1.8:rarity==="magic"?1.3:1)*pm, mods };
-}
+const AREAS=[
+  {name:"The Coast",t:1,kills:20,hp:80,dmg:8},{name:"The Ledge",t:2,kills:25,hp:200,dmg:22},
+  {name:"Cavern of Wrath",t:3,kills:30,hp:520,dmg:58},{name:"Flooded Depths",t:4,kills:35,hp:1400,dmg:160},
+  {name:"Fellshrine Ruins",t:5,kills:40,hp:3800,dmg:440},{name:"The Dread Thicket",t:6,kills:45,hp:1.05e4,dmg:1200},
+  {name:"Crystal Veins",t:7,kills:50,hp:2.9e4,dmg:3300},{name:"Desolate Isle",t:8,kills:55,hp:8e4,dmg:9200},
+  {name:"Vaal Temple",t:9,kills:60,hp:2.2e5,dmg:2.6e4},{name:"Altar of Lunaris",t:10,kills:70,hp:6.2e5,dmg:7.4e4},
+  {name:"Dread Citadel",t:11,kills:80,hp:1.8e6,dmg:2.1e5},{name:"The Vaal Pyramid",t:12,kills:90,hp:5.1e6,dmg:6.1e5},
+  {name:"Shaper's Domain",t:13,kills:100,hp:1.5e7,dmg:1.8e6},{name:"Elder's Realm",t:14,kills:120,hp:4.5e7,dmg:5.5e6},
+  {name:"Simulacrum",t:15,kills:150,hp:1.4e8,dmg:1.7e7},{name:"The Void",t:16,kills:180,hp:4.5e8,dmg:5.5e7},
+  {name:"Abyss of Eternity",t:17,kills:220,hp:1.5e9,dmg:1.8e8},{name:"Chaos Pinnacle",t:18,kills:270,hp:5e9,dmg:6.2e8},
+  {name:"Divine Sanctum",t:19,kills:340,hp:1.7e10,dmg:2.1e9},{name:"The Infinite Realm",t:20,kills:420,hp:6e10,dmg:7.5e9},
+];
+const PASSIVES=[
+  {id:"p0",row:0,ty:"sm",s:"Phys",name:"Brutal Strike",desc:"+15% Phys",eff:{physPct:15}},
+  {id:"p1",row:0,ty:"sm",s:"Speed",name:"Swift Strikes",desc:"+10% Atk Speed",eff:{aspdPct:10}},
+  {id:"p2",row:0,ty:"sm",s:"Arm",name:"Iron Skin",desc:"+20% Armour",eff:{armPct:20}},
+  {id:"p3",row:0,ty:"sm",s:"HP",name:"Vitality",desc:"+20% Max HP",eff:{hpPct:20}},
+  {id:"p4",row:0,ty:"sm",s:"Crit",name:"Lucky Hit",desc:"+5% Crit",eff:{crit:5}},
+  {id:"p5",row:1,ty:"no",s:"Slash",name:"Master of Slashing",desc:"+35% Phys",eff:{physPct:35},req:["p0"]},
+  {id:"p6",row:1,ty:"no",s:"Dual",name:"Dual Strike",desc:"+25% Atk Speed",eff:{aspdPct:25},req:["p1"]},
+  {id:"p7",row:1,ty:"no",s:"Fort",name:"Steel Fortress",desc:"+50% Armour\n+15% All Res",eff:{armPct:50,resist:15},req:["p2"]},
+  {id:"p8",row:1,ty:"no",s:"Body",name:"Iron Body",desc:"+40% Max HP",eff:{hpPct:40},req:["p3"]},
+  {id:"p9",row:1,ty:"no",s:"Lethal",name:"Lethal Blade",desc:"+10% Crit\n+80% Crit Multi",eff:{crit:10,critM:80},req:["p4"]},
+  {id:"p10",row:2,ty:"ks",s:"CARNAGE",name:"Avatar of Carnage",desc:"+80% Phys\n4% Life Leech",eff:{physPct:80,leech:4},req:["p5"]},
+  {id:"p11",row:2,ty:"no",s:"Gale",name:"Gale Force",desc:"+50% Atk Speed",eff:{aspdPct:50},req:["p6"]},
+  {id:"p12",row:2,ty:"no",s:"Undying",name:"Undying Flesh",desc:"+60% Max HP\n+30% Res",eff:{hpPct:60,resist:30},req:["p7"]},
+  {id:"p13",row:2,ty:"no",s:"Blood",name:"Blood Mage",desc:"+50% Max HP\n+40% Phys",eff:{hpPct:50,physPct:40},req:["p8"]},
+  {id:"p14",row:2,ty:"ks",s:"STORMS",name:"Shaper of Storms",desc:"+25% Crit\n+200% Crit Multi",eff:{crit:25,critM:200},req:["p9"]},
+];
+const UPGRADES=[
+  {id:"u0",name:"Sharp Blades",ico:"⚔",desc:"+50% Phys",base:150,mult:3.0,eff:{physPct:50},max:25},
+  {id:"u1",name:"Speed Potion",ico:"⚡",desc:"+20% Atk Spd",base:280,mult:3.2,eff:{aspdPct:20},max:20},
+  {id:"u2",name:"Life Stone",ico:"❤",desc:"+30% Max HP",base:200,mult:2.8,eff:{hpPct:30},max:25},
+  {id:"u3",name:"Iron Heart",ico:"🛡",desc:"+40% Armour",base:450,mult:3.5,eff:{armPct:40},max:20},
+  {id:"u4",name:"Crit Mastery",ico:"💀",desc:"+50% Crit Multi",base:700,mult:3.8,eff:{critM:50},max:20},
+  {id:"u5",name:"Curr Refinery",ico:"💰",desc:"+100% Curr Drop",base:1200,mult:4.5,eff:{currMult:1},max:15},
+  {id:"u6",name:"Dark Power",ico:"🔥",desc:"+100% Phys",base:7000,mult:5.5,eff:{physPct:100},max:15},
+  {id:"u7",name:"Time Warp",ico:"⏳",desc:"+50% Atk Spd",base:2e4,mult:7.0,eff:{aspdPct:50},max:10},
+  {id:"u8",name:"Undying Oath",ico:"✨",desc:"+100% Max HP",base:4.5e4,mult:7.0,eff:{hpPct:100},max:10},
+  {id:"u9",name:"Wrath of God",ico:"🌟",desc:"+300% Phys",base:2e5,mult:9.0,eff:{physPct:300},max:8},
+];
+const PUPS=[
+  {id:"q0",name:"Warlord's Crest",ico:"👑",desc:"Dmg ×2",cost:1,eff:{dmgMult:2}},
+  {id:"q1",name:"Immortal Soul",ico:"💎",desc:"HP ×2",cost:1,eff:{hpMult:2}},
+  {id:"q2",name:"Time Conqueror",ico:"⏱",desc:"Spd ×1.5",cost:1,eff:{aspdMult:1.5}},
+  {id:"q3",name:"Currency Baron",ico:"🪙",desc:"Curr ×3",cost:2,eff:{currMult:3}},
+  {id:"q4",name:"Divine Power",ico:"⚡",desc:"All ×2",cost:3,eff:{allMult:2}},
+];
+const EPOOL=["Rhoa","Zombie","Skeleton","Sand Leaper","Goatman","Corrupted Soul","Vaal Guard","Storm Herald","Crypt Fiend","Void Spawn"];
+const BPOOL=["Merveil, the Twisted","Vaal Oversoul","Piety of Abomination","The Merciless King","The Shaper","Sirus, Awakener","The Maven","Malachai the Nightmare","Atziri, Queen of the Vaal"];
+const PRE=["Brutal","Vile","Ancient","Twisted","Corrupted","Forsaken","Infernal","Blighted","Hungering","Wretched"];
+const SUF=["of Ruin","of Blight","of Chaos","of Void","of Malice","of the Abyss","of Carnage","of Despair"];
+const SLOTS=["weapon","armor","helm","boots","ring"];
+const SLOTL={weapon:"Weapon",armor:"Body",helm:"Helm",boots:"Boots",ring:"Ring"};
+const SBASES={weapon:["Dagger","Sword","Axe","Mace","Bow","Staff","Claw","Wand"],armor:["Leather Vest","Chain Mail","Plate Armour","Robe","Astral Plate"],helm:["Leather Cap","Iron Helm","Wizard Hat","Crown","Hubris Circlet"],boots:["Leather Boots","Iron Boots","Sorcerer Boots","Dragonscale Boots"],ring:["Copper Ring","Gold Ring","Sapphire Ring","Coral Ring","Diamond Ring"]};
+const UNIQ=[
+  {name:"Kaom's Heart",slot:"armor",stats:["+500% Max HP"],eff:{hpPct:500}},
+  {name:"Atziri's Disfavour",slot:"weapon",stats:["+300% Phys","+25% Spd"],eff:{physPct:300,aspdPct:25}},
+  {name:"Headhunter",slot:"ring",stats:["Steal Mods on Kill","+80% Max HP"],eff:{hpPct:80,physPct:50}},
+  {name:"Starforge",slot:"weapon",stats:["+400% Phys"],eff:{physPct:400}},
+  {name:"The Saviour",slot:"weapon",stats:["+200% Phys","+30% Spd"],eff:{physPct:200,aspdPct:30}},
+  {name:"Shaper's Touch",slot:"ring",stats:["+300% HP","+20% Phys"],eff:{hpPct:300,physPct:20}},
+  {name:"Kaom's Roots",slot:"boots",stats:["+400% Max HP"],eff:{hpPct:400}},
+  {name:"Skin of the Lords",slot:"armor",stats:["+200% Armour","+30% All Res"],eff:{armPct:200,resist:30}},
+  {name:"Mageblood",slot:"ring",stats:["Curr ×4","+50% Max HP"],eff:{currMult:4,hpPct:50}},
+  {name:"The Maven's Writ",slot:"ring",stats:["+200% Crit Multi","+20% Crit"],eff:{critM:200,crit:20}},
+];
+const CURRD=[
+  {id:"alt",s:"Alt",name:"Orb of Alteration",w:50,c:"#5566cc"},
+  {id:"alch",s:"Alch",name:"Orb of Alchemy",w:20,c:"#cc7722"},
+  {id:"chaos",s:"Chaos",name:"Chaos Orb",w:5,c:"#bb3388"},
+  {id:"exalt",s:"Ex",name:"Exalted Orb",w:1,c:"#f0b030"},
+];
+const CURRV={alt:1,alch:4,chaos:40,exalt:400};
+const RCOL={normal:"#c0c0c0",magic:"#8888ff",rare:"#ffff77",unique:"#d47828",boss:"#ff8844"};
+const LCOL={hit:"#e8dac5",crit:"#ffcc44",kill:"#38aa38",level:"#88aaff",area:"#c89028",drop:"#ffff77",unique:"#d47828",currency:"#a89878",passive:"#9858d8",prestige:"#ee88ee",upgrade:"#44ffcc",asc:"#f0b030"};
 
-// ── RECALC STATS ──────────────────────────────────────────────────────
-function recalc(s) {
-  let pp=0, ap=0, hp=0, ar=0, res=0, ll=0, cr=0, cm=0;
-  let dmM=1, hpM=1, asM=1, cuM=1;
+// ── STATE ───────────────────────────────────────────────────────────────────
+let gs=null,curTab="passive",overlayMode=null;
+let raf=null,lastT=null,combatT=0,regenT=0;
 
-  // Passives
-  for (const id of s.allocated) {
-    const n = PASSIVES.find(x => x.id === id);
-    if (!n) continue;
-    const e = n.eff;
-    if (e.physPct) pp += e.physPct; if (e.aspdPct) ap += e.aspdPct;
-    if (e.hpPct)   hp += e.hpPct;  if (e.armPct)  ar += e.armPct;
-    if (e.crit)    cr += e.crit;   if (e.critM)   cm += e.critM;
-    if (e.resist)  res += e.resist; if (e.leech)   ll += e.leech;
-  }
-  // Upgrades
-  for (const def of UPGRADES) {
-    const lv = s.upgrades[def.id] || 0;
-    if (!lv) continue;
-    const e = def.eff;
-    if (e.physPct)  pp += e.physPct * lv;  if (e.aspdPct)  ap += e.aspdPct * lv;
-    if (e.hpPct)    hp += e.hpPct * lv;    if (e.armPct)   ar += e.armPct * lv;
-    if (e.critM)    cm += e.critM * lv;    if (e.currMult) cuM *= (1 + e.currMult * lv);
-  }
-  // Equipment
-  for (const item of Object.values(s.equip)) {
-    if (!item?.eff) continue;
-    const e = item.eff;
-    if (e.physPct) pp += e.physPct; if (e.aspdPct) ap += e.aspdPct;
-    if (e.hpPct)   hp += e.hpPct;  if (e.armPct)  ar += e.armPct;
-    if (e.crit)    cr += e.crit;   if (e.critM)   cm += e.critM;
-    if (e.resist)  res += e.resist; if (e.leech)   ll += e.leech;
-  }
-  // Prestige permanent upgrades
-  for (const [id, cnt] of Object.entries(s.pUpgrades || {})) {
-    if (!cnt) continue;
-    const pd = PRESTIGE_UPGRADES.find(x => x.id === id);
-    if (!pd) continue;
-    const e = pd.eff;
-    if (e.dmgMult)  dmM *= Math.pow(e.dmgMult,  cnt);
-    if (e.hpMult)   hpM *= Math.pow(e.hpMult,   cnt);
-    if (e.aspdMult) asM *= Math.pow(e.aspdMult, cnt);
-    if (e.currMult) cuM *= Math.pow(e.currMult, cnt);
-    if (e.allMult)  { dmM *= Math.pow(e.allMult,cnt); hpM *= Math.pow(e.allMult,cnt); asM *= Math.pow(e.allMult,cnt); }
-  }
-
-  const pMult   = (1 + pp / 100) * dmM;
-  const aspdFin = Math.min(s.baseAspd * (1 + ap / 100) * asM, 20);
-  const hpFin   = Math.floor(s.baseHp * (1 + hp / 100) * hpM);
-  const arFin   = Math.floor(s.baseArm * (1 + ar / 100));
-
-  return {
-    ...s,
-    physMin:    Math.floor(s.basePhysMin * pMult),
-    physMax:    Math.floor(s.basePhysMax * pMult),
-    aspd:       aspdFin,
-    critChance: Math.min(s.baseCrit + cr, 95),
-    critMulti:  s.baseCritM + cm,
-    maxHp:      hpFin,
-    hp:         Math.min(s.hp > 0 ? s.hp : hpFin, hpFin),
-    armor:      arFin,
-    resist:     Math.min(res, 90),
-    leech:      ll,
-    currMult:   cuM,
+function makeInit(ck){
+  const cls=CLASSES[ck];
+  return{classKey:ck,ascKey:null,ascTaken:[],ascPoints:0,
+    level:1,exp:0,expNext:100,passivePoints:0,allocated:[],
+    areaIdx:0,kills:0,totalKills:0,areaClears:0,
+    prestigeLvl:0,prestigePts:0,pUpgrades:{},
+    baseHp:200,baseArm:50,basePhysMin:5,basePhysMax:12,baseAspd:1.2,baseCrit:5,baseCritM:150,
+    upgrades:{u0:0,u1:0,u2:0,u3:0,u4:0,u5:0,u6:0,u7:0,u8:0,u9:0},
+    currency:{alt:0,alch:0,chaos:0,exalt:0},
+    equip:{weapon:null,armor:null,helm:null,boots:null,ring:null},
+    inventory:[],se:cls?cls.se:{},
+    physMin:5,physMax:12,aspd:1.2,critChance:5,critMulti:150,maxHp:200,hp:200,armor:50,resist:0,leech:0,currMult:1,enemy:null,
   };
 }
+const cTot=c=>(c.alt||0)*CURRV.alt+(c.alch||0)*CURRV.alch+(c.chaos||0)*CURRV.chaos+(c.exalt||0)*CURRV.exalt;
+const upgC=(d,lv)=>Math.floor(d.base*Math.pow(d.mult,lv));
+const iScore=it=>{if(!it?.eff)return 0;const e=it.eff;return(e.physPct||0)*3+(e.hpPct||0)*1.5+(e.armPct||0)+(e.aspdPct||0)*2;};
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const ri=(a,b)=>Math.floor(a+Math.random()*(b-a+1));
 
-function makeInit() {
-  return {
-    level:1, exp:0, expNext:100, passivePoints:0, allocated:new Set(),
-    areaIdx:0, kills:0, totalKills:0,
-    prestigeLvl:0, prestigePts:0, pUpgrades:{},
-    baseHp:200, baseArm:50, basePhysMin:5, basePhysMax:12, baseAspd:1.2, baseCrit:5, baseCritM:150,
-    upgrades:{ u0:0,u1:0,u2:0,u3:0,u4:0,u5:0,u6:0,u7:0,u8:0,u9:0 },
-    currency:{ alt:0, alch:0, chaos:0, exalt:0 },
-    equip:{ weapon:null, armor:null, helm:null, boots:null, ring:null },
-    inventory:[],
-    lastOnline: Date.now(),
-  };
+function recalc(s){
+  let pp=0,ap=0,hp=0,ar=0,res=0,ll=0,cr=0,cm=0,cuM=1,dmM=1,hpM=1,asM=1,cMx=1;
+  const se=s.se||{};
+  if(se.physPct)pp+=se.physPct;if(se.aspdPct)ap+=se.aspdPct;if(se.hpPct)hp+=se.hpPct;if(se.crit)cr+=se.crit;if(se.critM)cm+=se.critM;
+  for(const id of(s.allocated||[])){const n=PASSIVES.find(x=>x.id===id);if(!n)continue;const e=n.eff;if(e.physPct)pp+=e.physPct;if(e.aspdPct)ap+=e.aspdPct;if(e.hpPct)hp+=e.hpPct;if(e.armPct)ar+=e.armPct;if(e.crit)cr+=e.crit;if(e.critM)cm+=e.critM;if(e.resist)res+=e.resist;if(e.leech)ll+=e.leech;}
+  if(s.ascKey&&s.classKey){const cls=CLASSES[s.classKey];if(cls?.asc[s.ascKey]){const asc=cls.asc[s.ascKey];for(const id of(s.ascTaken||[])){const nd=asc.nodes.find(x=>x.id===id);if(!nd)continue;const e=nd.eff;if(e.physPct)pp+=e.physPct;if(e.aspdPct)ap+=e.aspdPct;if(e.hpPct)hp+=e.hpPct;if(e.armPct)ar+=e.armPct;if(e.crit)cr+=e.crit;if(e.critM)cm+=e.critM;if(e.resist)res+=e.resist;if(e.leech)ll+=e.leech;if(e.currMult)cuM*=e.currMult;if(e.critMx)cMx*=e.critMx;}}}
+  for(const def of UPGRADES){const lv=s.upgrades[def.id]||0;if(!lv)continue;const e=def.eff;if(e.physPct)pp+=e.physPct*lv;if(e.aspdPct)ap+=e.aspdPct*lv;if(e.hpPct)hp+=e.hpPct*lv;if(e.armPct)ar+=e.armPct*lv;if(e.critM)cm+=e.critM*lv;if(e.currMult)cuM*=(1+e.currMult*lv);}
+  for(const it of Object.values(s.equip)){if(!it?.eff)continue;const e=it.eff;if(e.physPct)pp+=e.physPct;if(e.aspdPct)ap+=e.aspdPct;if(e.hpPct)hp+=e.hpPct;if(e.armPct)ar+=e.armPct;if(e.crit)cr+=e.crit;if(e.critM)cm+=e.critM;if(e.resist)res+=e.resist;if(e.leech)ll+=e.leech;if(e.currMult)cuM*=e.currMult;}
+  for(const[id,cnt]of Object.entries(s.pUpgrades||{})){if(!cnt)continue;const pd=PUPS.find(x=>x.id===id);if(!pd)continue;const e=pd.eff;if(e.dmgMult)dmM*=Math.pow(e.dmgMult,cnt);if(e.hpMult)hpM*=Math.pow(e.hpMult,cnt);if(e.aspdMult)asM*=Math.pow(e.aspdMult,cnt);if(e.currMult)cuM*=Math.pow(e.currMult,cnt);if(e.allMult){dmM*=Math.pow(e.allMult,cnt);hpM*=Math.pow(e.allMult,cnt);asM*=Math.pow(e.allMult,cnt);}}
+  const pM=(1+pp/100)*dmM;
+  s.physMin=Math.floor(s.basePhysMin*pM);s.physMax=Math.floor(s.basePhysMax*pM);
+  s.aspd=Math.min(s.baseAspd*(1+ap/100)*asM,20);
+  s.critChance=Math.min(s.baseCrit+cr,95);s.critMulti=(s.baseCritM+cm)*cMx;
+  s.maxHp=Math.floor(s.baseHp*(1+hp/100)*hpM);s.hp=Math.min(s.hp>0?s.hp:s.maxHp,s.maxHp);
+  s.armor=Math.floor(s.baseArm*(1+ar/100));s.resist=Math.min(res,90);s.leech=ll;s.currMult=cuM;
+  return s;
 }
 
-// ── OFFLINE CALC ──────────────────────────────────────────────────────
-function calcOfflineRewards(s, offlineSec) {
-  if (offlineSec < 10) return null;
-  const area   = AREAS[Math.min(s.areaIdx, AREAS.length - 1)];
-  const dps    = ((s.physMin + s.physMax) / 2) * s.aspd * (1 + (s.critChance/100) * (s.critMulti/100 - 1));
-  const eHp    = area.hp * Math.pow(2.5, s.prestigeLvl || 0);
-  const killRate= dps / eHp;                         // kills/s
-  const kills  = Math.floor(killRate * offlineSec);
-  // Currency
-  const avgCurrPerKill = 0.35 * (s.currMult || 1) * (CURR_VAL.alt*0.5 + CURR_VAL.alch*0.2 + CURR_VAL.chaos*0.05 + CURR_VAL.exalt*0.01);
-  const currEarned = Math.floor(kills * avgCurrPerKill);
-  // EXP
-  const expGained = Math.floor(kills * (12 + area.tier * 8) * 0.5);
-  return { kills, currEarned, expGained, seconds: offlineSec };
+function genEnemy(area,kl){
+  const pm=Math.pow(2.5,gs.prestigeLvl||0);
+  if(kl<=1)return{name:pick(BPOOL),rarity:"boss",maxHp:area.hp*15*pm,hp:area.hp*15*pm,dmg:area.dmg*4*pm,mods:["BOSS"]};
+  const r=Math.random();const rarity=r<.03?"rare":r<.2?"magic":"normal";
+  const rH=rarity==="magic"?5:rarity==="rare"?12:1;
+  const mods=rarity==="rare"?[pick(["Burning","Frozen","Empowered"]),pick(["Regen","Barrier"])]:rarity==="magic"?[pick(["Burning","Frozen"])]:[];
+  const base=pick(EPOOL);
+  const name=rarity==="rare"?`${pick(PRE)} ${base} ${pick(SUF)}`:rarity==="magic"?`Mutant ${base}`:base;
+  return{name,rarity,maxHp:area.hp*rH*pm,hp:area.hp*rH*pm,dmg:area.dmg*(rarity==="rare"?1.8:rarity==="magic"?1.3:1)*pm,mods};
+}
+function genItem(tier,rarOvr){
+  const mult=1+(gs.prestigeLvl||0)*0.6;
+  if(rarOvr==="unique"||Math.random()<.012){const u=pick(UNIQ);const eff={};for(const[k,v]of Object.entries(u.eff))eff[k]=v*mult;return{...u,rarity:"unique",eff};}
+  const rarity=rarOvr||(Math.random()<.07?"rare":Math.random()<.25?"magic":"normal");
+  const slot=pick(SLOTS);const base=pick(SBASES[slot]);
+  const pB=Math.floor((tier*12+ri(10,40))*mult*(rarity==="rare"?1.8:1));
+  const hB=Math.floor((tier*15+ri(15,50))*mult*(rarity==="rare"?1.8:1));
+  let name,stats=[],eff={};
+  if(rarity==="normal"){name=base;}
+  else if(rarity==="magic"){name=`${pick(PRE)} ${base}`;if(slot==="weapon"){stats=[`+${pB}% Phys`];eff={physPct:pB};}else if(slot==="armor"||slot==="helm"){stats=[`+${hB}% HP`];eff={hpPct:hB};}else{stats=[`+${Math.floor(pB*.7)}% Phys`];eff={physPct:Math.floor(pB*.7)};}}
+  else{name=`${pick(PRE)} ${base} ${pick(SUF)}`;if(slot==="weapon"){const sB=ri(15,35);stats=[`+${pB}% Phys`,`+${sB}% Spd`];eff={physPct:pB,aspdPct:sB};}else if(slot==="armor"||slot==="helm"){const aB=ri(15,40);stats=[`+${hB}% HP`,`+${aB}% Arm`];eff={hpPct:hB,armPct:aB};}else{stats=[`+${Math.floor(pB*.9)}% Phys`,`+${hB}% HP`];eff={physPct:Math.floor(pB*.9),hpPct:hB};}}
+  return{name,slot,rarity,stats,eff};
 }
 
-// ── MAIN COMPONENT ────────────────────────────────────────────────────
-export default function App() {
-  const [gs, setGs]       = useState(() => {
-    const s = recalc(makeInit());
-    return { ...s, enemy: genEnemy(AREAS[0], AREAS[0].kills, 0) };
-  });
-  const [log, setLog]     = useState([{ id:0, text:"⚔ Welcome to Wraeclast. The hunt begins.", cls:"area" }]);
-  const [notifs, setNotifs] = useState([]);
-  const [tab, setTab]     = useState("passive");
-  const [modal, setModal] = useState(false);             // prestige modal
-  const [offlineModal, setOfflineModal] = useState(null);// offline rewards
-  const [floats, setFloats] = useState([]);
-  const logId = useRef(1), nId = useRef(0), fId = useRef(0);
-  const enemyRef = useRef(null);
+function addLog(text,cls="hit"){const d=document.createElement("div");d.className="ll"+(cls==="area"?" area":"");d.style.color=LCOL[cls]||LCOL.hit;d.textContent=text;const l=document.getElementById("log");if(l){l.insertBefore(d,l.firstChild);while(l.children.length>80)l.removeChild(l.lastChild);}}
+function showNotif(text,color){const d=document.createElement("div");d.className="notif";d.style.border=`1px solid ${color}`;d.style.color=color;d.textContent=text;const n=document.getElementById("notifarea");if(n)n.appendChild(d);setTimeout(()=>{try{d.remove();}catch(e){}},2200);}
+function addFloat(text,color){const fa=document.getElementById("floatarea");const eb=document.getElementById("ebox");if(!fa||!eb)return;const rr=fa.getBoundingClientRect();const er=eb.getBoundingClientRect();const x=er.left-rr.left+er.width/2;const y=er.top-rr.top+14;const d=document.createElement("div");d.className="fdmg";d.style.cssText=`color:${color};left:${x}px;top:${y}px`;d.textContent=text;fa.appendChild(d);setTimeout(()=>{try{d.remove();}catch(e){}},900);}
 
-  const addLog = useCallback((text, cls="hit") => {
-    const id = logId.current++;
-    setLog(p => [{ id, text, cls }, ...p.slice(0, 89)]);
-  }, []);
-
-  const showNotif = useCallback((text, cls="") => {
-    const id = nId.current++;
-    setNotifs(p => [...p, { id, text, cls }]);
-    setTimeout(() => setNotifs(p => p.filter(n => n.id !== id)), 2400);
-  }, []);
-
-  const addFloat = useCallback((text, color) => {
-    const box = enemyRef.current?.getBoundingClientRect();
-    if (!box) return;
-    const id = fId.current++;
-    const x  = box.left + box.width / 2;
-    const y  = box.top + 18;
-    setFloats(p => [...p, { id, text, color, x, y }]);
-    setTimeout(() => setFloats(p => p.filter(f => f.id !== id)), 900);
-  }, []);
-
-  // ── OFFLINE REWARD CHECK ────────────────────────────────────────────
-  useEffect(() => {
-    setGs(prev => {
-      const now    = Date.now();
-      const offSec = Math.floor((now - (prev.lastOnline || now)) / 1000);
-      const result = calcOfflineRewards(prev, offSec);
-      if (!result || result.kills < 1) return { ...prev, lastOnline: now };
-      setOfflineModal(result);
-      // Apply rewards
-      let s = { ...prev, lastOnline: now };
-      s.currency = { ...s.currency, chaos: s.currency.chaos + Math.floor(result.currEarned / CURR_VAL.chaos) };
-      s.exp += result.expGained;
-      s.totalKills = (s.totalKills || 0) + result.kills;
-      while (s.exp >= s.expNext) {
-        s.exp -= s.expNext; s.level++; s.passivePoints++;
-        s.baseHp  = Math.floor(s.baseHp  * 1.08);
-        s.baseArm = Math.floor(s.baseArm * 1.05);
-        s.expNext = Math.floor(100 * Math.pow(1.22, s.level - 1));
-      }
-      return recalc(s);
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // ── GAME LOOP ────────────────────────────────────────────────────────
-  useEffect(() => {
-    let last = null, combatT = 0, regenT = 0, raf;
-    function tick(ts) {
-      if (!last) last = ts;
-      const dt = Math.min(ts - last, 200); last = ts;
-      setGs(prev => {
-        if (!prev.enemy) return prev;
-        let s = { ...prev };
-        combatT += dt; regenT += dt;
-        // Regen
-        if (regenT >= 500) { regenT -= 500; s.hp = Math.min(s.maxHp, s.hp + s.maxHp * 0.008); }
-        const ai = 1000 / s.aspd;
-        if (combatT < ai) return s;
-        combatT -= ai;
-
-        // Player attacks
-        const bDmg = s.physMin + Math.random() * (s.physMax - s.physMin);
-        const isCrit = Math.random() * 100 < s.critChance;
-        let dmg = Math.max(1, Math.floor(isCrit ? bDmg * (s.critMulti / 100) : bDmg));
-        const enemy = { ...s.enemy, hp: s.enemy.hp - dmg };
-        if (s.leech > 0) s.hp = Math.min(s.maxHp, s.hp + dmg * s.leech / 100);
-        addFloat(fmt(dmg), isCrit ? "#ffcc44" : "#e8dac5");
-        if (isCrit) addLog(`💥 CRIT! Hit ${enemy.name} for ${fmt(dmg)}`, "crit");
-        else        addLog(`Hit ${enemy.name} for ${fmt(dmg)}`, "hit");
-
-        // Enemy retaliates
-        const mit = Math.min(0.92, s.armor / (s.armor + 500));
-        const rMit = Math.min(0.75, s.resist / 100);
-        const eDmg = Math.max(1, Math.floor(enemy.dmg * (1 - mit) * (1 - rMit)));
-        s.hp = Math.max(0, s.hp - eDmg);
-        if (enemy.mods.includes("Regeneration")) enemy.hp = Math.min(enemy.maxHp, enemy.hp + eDmg * 0.2);
-
-        // Enemy dies
-        if (enemy.hp <= 0) {
-          const area  = AREAS[Math.min(s.areaIdx, AREAS.length - 1)];
-          const kills = s.kills + 1;
-          s.totalKills = (s.totalKills || 0) + 1;
-          addLog(`✓ Slew ${enemy.name}!`, "kill");
-
-          // EXP
-          const eg = Math.floor((15 + area.tier * 8) *
-            (enemy.rarity==="boss"?30 : enemy.rarity==="rare"?8 : enemy.rarity==="magic"?3 : 1));
-          s.exp += eg;
-          while (s.exp >= s.expNext) {
-            s.exp -= s.expNext; s.level++; s.passivePoints++;
-            s.baseHp  = Math.floor(s.baseHp  * 1.08);
-            s.baseArm = Math.floor(s.baseArm * 1.05);
-            s.expNext = Math.floor(100 * Math.pow(1.22, s.level - 1));
-            addLog(`⬆ Level Up! Now Lv.${s.level} — Passive point gained!`, "level");
-            showNotif(`LEVEL UP  Lv.${s.level}`, "level");
-            s = recalc(s);
-          }
-
-          // Currency drop
-          const cTot = CURRENCY.reduce((a, c) => a + c.weight, 0);
-          let cRoll = Math.random() * cTot, cCum = 0;
-          for (const c of CURRENCY) {
-            cCum += c.weight;
-            if (cRoll < cCum) {
-              if (Math.random() < 0.38 || enemy.rarity !== "normal") {
-                const qty  = enemy.rarity === "boss" ? ri(3, 10) : 1;
-                const mult = Math.max(1, Math.floor(s.currMult || 1));
-                const tot  = qty * mult;
-                s.currency = { ...s.currency, [c.id]: s.currency[c.id] + tot };
-                addLog(tot > 1 ? `💰 ${c.name} ×${tot} (×${mult} bonus)` : `💰 ${c.name}`, "currency");
-              }
-              break;
-            }
-          }
-
-          // Item drop
-          const ir = Math.random();
-          const dr = enemy.rarity === "boss" ? (Math.random() < .2 ? "unique" : "rare")
-                   : ir < .012 ? "unique" : ir < .08 ? "rare" : ir < .3 ? "magic" : ir < .55 ? "normal" : null;
-          if (dr) {
-            const item = genItem(area.tier, dr, s.prestigeLvl || 0);
-            const cs   = itemScore(s.equip[item.slot]);
-            const ns   = itemScore(item);
-            let eq = { ...s.equip }, inv = [...s.inventory];
-            if (ns > cs) {
-              if (s.equip[item.slot]) inv = [...inv, s.equip[item.slot]].slice(-20);
-              eq[item.slot] = item;
-              addLog(`🛡 Auto-equipped ${item.name}!`, "kill");
-            } else {
-              inv = [...inv, item].slice(-20);
-            }
-            s.equip = eq; s.inventory = inv;
-            if (item.rarity === "unique")  { addLog(`✨ UNIQUE FOUND: ${item.name}`, "unique"); showNotif(`⚡ ${item.name}`, "unique"); }
-            else if (item.rarity !== "normal") addLog(`🎁 ${item.rarity==="rare"?"★":"◆"} ${item.name}`, "drop");
-            s = recalc(s);
-          }
-
-          // Prestige point at max area
-          if (s.areaIdx >= AREAS.length - 1 && kills >= area.kills) {
-            s.prestigePts = (s.prestigePts || 0) + 1;
-            addLog("🏆 Max area loop! +1 Prestige Point!", "prestige");
-            showNotif("✦ +1 Prestige Point!", "prestige");
-          }
-
-          // Area complete
-          if (kills >= area.kills) {
-            s.kills = 0;
-            const next = Math.min(s.areaIdx + 1, AREAS.length - 1);
-            if (next !== s.areaIdx) { addLog(`🗺 Cleared "${area.name}" → ${AREAS[next].name} T${AREAS[next].tier}`, "area"); showNotif(`T${AREAS[next].tier} ${AREAS[next].name}`, "area"); }
-            s.areaIdx = next;
-            s.enemy   = genEnemy(AREAS[next], AREAS[next].kills, s.prestigeLvl || 0);
-          } else {
-            s.kills = kills;
-            s.enemy = genEnemy(area, area.kills - kills, s.prestigeLvl || 0);
-          }
-          if (s.hp <= 0) { s.hp = Math.floor(s.maxHp * 0.25); addLog("💀 Defeated... Resurrected.", "level"); }
-          return s;
-        }
-
-        // Enemy survives
-        s.enemy = enemy;
-        if (s.hp <= 0) { s.hp = Math.floor(s.maxHp * 0.25); addLog("💀 Defeated... Resurrected.", "level"); s.enemy = { ...enemy, hp: enemy.maxHp }; }
-        return s;
-      });
-      raf = requestAnimationFrame(tick);
-    }
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [addLog, showNotif, addFloat]);
-
-  // ── ACTIONS ──────────────────────────────────────────────────────────
-  const allocPassive = useCallback(node => {
-    setGs(prev => {
-      if (prev.allocated.has(node.id) || prev.passivePoints <= 0) return prev;
-      const ok = !node.req || node.req.some(r => prev.allocated.has(r)) || prev.allocated.size === 0;
-      if (!ok) { showNotif("Prerequisite node required!", "warn"); return prev; }
-      const al = new Set(prev.allocated); al.add(node.id);
-      addLog(`✦ Passive "${node.name}" allocated!`, "passive");
-      return recalc({ ...prev, allocated:al, passivePoints:prev.passivePoints - 1 });
-    });
-  }, [showNotif, addLog]);
-
-  const buyUpgrade = useCallback(def => {
-    setGs(prev => {
-      const lv   = prev.upgrades[def.id] || 0;
-      if (lv >= def.max) return prev;
-      const cost = upgC(def, lv);
-      const tot  = cTotal(prev.currency);
-      if (tot < cost) { showNotif("Not enough currency!", "warn"); return prev; }
-      let rem = cost;
-      const cur = { ...prev.currency };
-      for (const c of [...CURRENCY].reverse()) {
-        const spend = Math.min(cur[c.id], Math.ceil(rem / CURR_VAL[c.id]));
-        cur[c.id] -= spend; rem -= spend * CURR_VAL[c.id];
-        if (rem <= 0) break;
-      }
-      addLog(`⬆ ${def.name} → Lv.${lv + 1}`, "upgrade");
-      return recalc({ ...prev, upgrades:{ ...prev.upgrades, [def.id]:lv+1 }, currency:cur });
-    });
-  }, [showNotif, addLog]);
-
-  const doPrestige = useCallback(() => {
-    setGs(prev => {
-      if (!(prev.prestigePts > 0)) { showNotif("Not enough Prestige Points!", "warn"); return prev; }
-      const newLvl = (prev.prestigeLvl || 0) + 1;
-      addLog(`🌟 PRESTIGE Lv.${newLvl} — Reset complete. Returning stronger!`, "prestige");
-      showNotif(`✦ PRESTIGE Lv.${newLvl} ✦`, "prestige");
-      const base = makeInit();
-      const s    = recalc({ ...base, prestigeLvl:newLvl, prestigePts:(prev.prestigePts||0)-1, pUpgrades:prev.pUpgrades||{}, totalKills:prev.totalKills||0, lastOnline:Date.now() });
-      return { ...s, enemy:genEnemy(AREAS[0], AREAS[0].kills, newLvl) };
-    });
-    setModal(false);
-  }, [showNotif, addLog]);
-
-  const buyPrestigeUp = useCallback(pd => {
-    setGs(prev => {
-      if ((prev.prestigePts || 0) < pd.cost) { showNotif("Not enough Prestige Points!", "warn"); return prev; }
-      const pu = { ...(prev.pUpgrades||{}), [pd.id]:((prev.pUpgrades||{})[pd.id]||0)+1 };
-      addLog(`👑 Prestige upgrade "${pd.name}" purchased!`, "prestige");
-      return recalc({ ...prev, pUpgrades:pu, prestigePts:(prev.prestigePts||0)-pd.cost });
-    });
-  }, [showNotif, addLog]);
-
-  const equipFromInv = useCallback(idx => {
-    setGs(prev => {
-      const item = prev.inventory[idx]; if (!item) return prev;
-      let inv = [...prev.inventory], eq = { ...prev.equip };
-      const old = eq[item.slot]; eq[item.slot] = item; inv.splice(idx, 1);
-      if (old) inv = [old, ...inv].slice(0, 20);
-      addLog(`🛡 Equipped ${item.name}`, "kill");
-      return recalc({ ...prev, equip:eq, inventory:inv });
-    });
-  }, [addLog]);
-
-  // ── DERIVED ──────────────────────────────────────────────────────────
-  const area    = AREAS[Math.min(gs.areaIdx, AREAS.length - 1)];
-  const hpPct   = Math.max(0, gs.hp / gs.maxHp * 100);
-  const expPct  = Math.min(100, gs.exp / gs.expNext * 100);
-  const killPct = gs.kills / area.kills * 100;
-  const eHpPct  = gs.enemy ? Math.max(0, gs.enemy.hp / gs.enemy.maxHp * 100) : 0;
-  const avgDmg  = (gs.physMin + gs.physMax) / 2;
-  const cMul    = 1 + (gs.critChance / 100) * (gs.critMulti / 100 - 1);
-  const dps     = avgDmg * gs.aspd * cMul;
-  const ctot    = cTotal(gs.currency);
-
-  // ── RENDER ────────────────────────────────────────────────────────────
-  return (
-    <div style={{ display:"grid", gridTemplateColumns:"196px 1fr 248px", gridTemplateRows:"48px 1fr",
-      height:"100vh", background:C.bg, color:C.white, fontFamily:"'Crimson Text',serif", overflow:"hidden" }}>
-
-      {/* Floating damage numbers */}
-      {floats.map(f => (
-        <div key={f.id} style={{ position:"fixed", left:f.x, top:f.y, pointerEvents:"none", zIndex:9999,
-          color:f.color, fontFamily:"Cinzel,serif", fontWeight:700, fontSize:13,
-          animation:"floatUp .9s ease forwards", textShadow:"0 1px 6px rgba(0,0,0,.9)" }}>
-          {f.text}
-        </div>
-      ))}
-
-      {/* Modals */}
-      {modal && <PrestigeModal gs={gs} onPrestige={doPrestige} onBuy={buyPrestigeUp} onClose={() => setModal(false)} />}
-      {offlineModal && <OfflineModal data={offlineModal} onClose={() => setOfflineModal(null)} />}
-
-      {/* ── HEADER ── */}
-      <header style={{ gridColumn:"1/-1", background:`linear-gradient(180deg,#1a1208,${C.bg2})`,
-        borderBottom:`1px solid ${C.bGlow}`, display:"flex", alignItems:"center", gap:14, padding:"0 14px",
-        boxShadow:"0 2px 20px rgba(200,149,42,.15)" }}>
-        <span style={{ fontFamily:"Cinzel,serif", fontSize:15, color:C.goldB, letterSpacing:4,
-          textShadow:"0 0 20px rgba(240,180,48,.5)", whiteSpace:"nowrap" }}>⚔ PATH OF IDLE</span>
-
-        <Badge label="Lv"      val={gs.level} />
-        <Badge label="DPS"     val={fmtDps(dps)} color={C.goldB} />
-        <Badge label="Kills"   val={fmt(gs.totalKills || 0)} />
-        <Badge label="Prestige"val={gs.prestigeLvl || 0} color={C.prestige} />
-
-        {/* EXP bar */}
-        <div style={{ flex:1, display:"flex", flexDirection:"column", gap:1 }}>
-          <div style={{ height:4, background:C.bg3, border:`1px solid ${C.b}`, borderRadius:2, overflow:"hidden" }}>
-            <div style={{ height:"100%", width:expPct+"%", background:`linear-gradient(90deg,${C.goldD},${C.gold})`, transition:"width .25s" }} />
-          </div>
-          <div style={{ fontSize:9, color:C.dim, textAlign:"right" }}>{fmt(gs.exp)} / {fmt(gs.expNext)} EXP</div>
-        </div>
-
-        <div style={{ fontSize:11, color:C.dim, fontStyle:"italic", whiteSpace:"nowrap" }}>
-          <span style={{ color:C.gold, fontFamily:"Cinzel,serif", fontStyle:"normal" }}>{area.name}</span>
-          <span style={{ color:C.goldD }}> T{area.tier}</span>
-        </div>
-
-        {gs.prestigePts > 0 && (
-          <button onClick={() => setModal(true)} style={{ background:"linear-gradient(135deg,#2a0030,#550060)",
-            border:`1px solid ${C.prestige}`, color:C.prestige, padding:"4px 10px", cursor:"pointer",
-            fontFamily:"Cinzel,serif", fontSize:10, letterSpacing:1, animation:"pulsePt 1.5s infinite" }}>
-            ✦ PRESTIGE ({gs.prestigePts}pt)
-          </button>
-        )}
-      </header>
-
-      {/* ── LEFT PANEL ── */}
-      <aside style={{ background:C.panel, borderRight:`1px solid ${C.b}`, overflowY:"auto", padding:10,
-        display:"flex", flexDirection:"column", gap:7 }}>
-        <PanelTitle>Character</PanelTitle>
-
-        {/* HP bar */}
-        <div>
-          <div style={{ display:"flex", justifyContent:"space-between", fontSize:10, marginBottom:2 }}>
-            <span style={{ color:C.dim }}>Life</span>
-            <span style={{ color:C.red, fontFamily:"Cinzel,serif" }}>{fmt(Math.floor(gs.hp))} / {fmt(gs.maxHp)}</span>
-          </div>
-          <div style={{ height:8, background:C.bg3, border:"1px solid #3a0f0f", borderRadius:2, overflow:"hidden" }}>
-            <div style={{ height:"100%", width:hpPct+"%", background:"linear-gradient(90deg,#5a0000,#cc3333)", transition:"width .12s" }} />
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div style={{ display:"flex", flexDirection:"column", gap:2 }}>
-          {[
-            ["Phys Damage",  `${fmt(gs.physMin)}–${fmt(gs.physMax)}`],
-            ["DPS",          fmtDps(dps), C.goldB],
-            ["Attack Speed", `${gs.aspd.toFixed(2)}/s`],
-            ["Crit",         `${gs.critChance.toFixed(0)}% / ${gs.critMulti}%`],
-            ["Armour",       fmt(gs.armor)],
-            ["Resistance",   `${gs.resist.toFixed(0)}%`],
-            ["Currency",     fmt(ctot), C.curr],
-            ["Curr Mult",    `×${(gs.currMult||1).toFixed(1)}`, C.curr],
-          ].map(([k, v, col]) => (
-            <div key={k} style={{ display:"flex", justifyContent:"space-between", fontSize:11 }}>
-              <span style={{ color:C.dim }}>{k}</span>
-              <span style={{ color:col||C.white, fontWeight:600, fontFamily:"Cinzel,serif", fontSize:10 }}>{v}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* Equipment */}
-        <PanelTitle style={{ marginTop:4 }}>Equipment</PanelTitle>
-        {[["weapon","Weapon"],["armor","Body"],["helm","Helm"],["boots","Boots"],["ring","Ring"]].map(([slot,label]) => {
-          const item = gs.equip[slot];
-          return (
-            <div key={slot} style={{ background:C.bg3, border:`1px solid ${item ? rarColor(item.rarity)+"77" : C.b}`,
-              borderRadius:2, padding:"3px 6px" }}>
-              <div style={{ fontSize:9, color:C.dim }}>{label}</div>
-              <div style={{ fontSize:9, color:item ? rarColor(item.rarity) : C.b, lineHeight:1.3 }}>
-                {item ? item.name.slice(0,24)+(item.name.length>24?"…":"") : "—"}
-              </div>
-            </div>
-          );
-        })}
-
-        {/* Currency */}
-        <PanelTitle style={{ marginTop:4 }}>Currency</PanelTitle>
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:3 }}>
-          {CURRENCY.map(c => (
-            <div key={c.id} style={{ display:"flex", alignItems:"center", gap:4 }}>
-              <div style={{ width:16, height:16, borderRadius:"50%", border:`1px solid ${c.color}`,
-                background:c.color+"22", display:"flex", alignItems:"center", justifyContent:"center",
-                fontSize:7, fontWeight:900, color:c.color, flexShrink:0 }}>{c.short[0]}</div>
-              <div>
-                <div style={{ fontSize:9, color:C.dim, lineHeight:1 }}>{c.short}</div>
-                <div style={{ fontSize:10, color:C.curr, fontFamily:"Cinzel,serif", fontWeight:600, lineHeight:1 }}>{fmt(gs.currency[c.id])}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </aside>
-
-      {/* ── CENTER ── */}
-      <main style={{ display:"flex", flexDirection:"column", overflow:"hidden" }}>
-        {/* Map progress */}
-        <div style={{ background:C.bg2, borderBottom:`1px solid ${C.b}`, padding:"6px 12px",
-          display:"flex", alignItems:"center", gap:10 }}>
-          <div style={{ fontFamily:"Cinzel,serif", fontSize:10, padding:"2px 8px",
-            background:C.bg3, border:`1px solid ${C.goldD}`, color:C.gold, whiteSpace:"nowrap" }}>
-            T{area.tier}
-          </div>
-          <div style={{ flex:1, height:6, background:C.bg3, border:`1px solid ${C.b}`, borderRadius:1, overflow:"hidden" }}>
-            <div style={{ height:"100%", width:killPct+"%", background:`linear-gradient(90deg,${C.goldD},${C.gold})`, transition:"width .06s" }} />
-          </div>
-          <span style={{ color:C.dim, fontSize:11, whiteSpace:"nowrap" }}>
-            <span style={{ color:C.white }}>{gs.kills}</span>/{area.kills} kills
-          </span>
-        </div>
-
-        {/* Enemy */}
-        {gs.enemy && (
-          <div ref={enemyRef} style={{
-            margin:"10px 12px 0",
-            background:`radial-gradient(ellipse,rgba(${gs.enemy.rarity==="boss"?"110,40,0":"75,18,18"},.12) 0%,transparent 70%), ${C.bg2}`,
-            border:`1px solid ${gs.enemy.rarity==="boss" ? "#804010" : C.b}`,
-            padding:"9px 12px",
-            animation:gs.enemy.rarity==="boss" ? "bossGlow 1.2s infinite" : "none",
-          }}>
-            <div style={{ display:"flex", alignItems:"baseline", gap:8, marginBottom:5 }}>
-              <span style={{ fontFamily:"Cinzel,serif", fontSize:gs.enemy.rarity==="boss"?15:13,
-                color:rarColor(gs.enemy.rarity),
-                textShadow:gs.enemy.rarity!=="normal"?`0 0 10px ${rarColor(gs.enemy.rarity)}88`:"none" }}>
-                {gs.enemy.name}
-              </span>
-              <div style={{ display:"flex", gap:3 }}>
-                {gs.enemy.mods.map(m => (
-                  <span key={m} style={{ fontSize:9, padding:"1px 4px", fontStyle:"italic",
-                    background:"rgba(180,75,15,.22)", color:"#ff8844", border:"1px solid #883311", borderRadius:2 }}>{m}</span>
-                ))}
-              </div>
-            </div>
-            <div style={{ height:8, background:C.bg3, border:`1px solid ${C.b}`, borderRadius:1, overflow:"hidden", position:"relative" }}>
-              <div style={{ height:"100%", width:eHpPct+"%", background:"linear-gradient(90deg,#480000,#bb1111)", transition:"width .08s" }} />
-              <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center",
-                fontSize:9, color:C.white, fontFamily:"Cinzel,serif" }}>
-                {fmt(Math.max(0, Math.floor(gs.enemy.hp)))} / {fmt(gs.enemy.maxHp)}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Combat log */}
-        <div style={{ flex:1, margin:"8px 12px 10px", background:C.bg2, border:`1px solid ${C.b}`,
-          overflowY:"auto", padding:"5px 7px", display:"flex", flexDirection:"column", gap:0 }}>
-          {log.map(e => (
-            <div key={e.id} style={{ fontSize:11, lineHeight:1.55, color:logColor(e.cls),
-              fontWeight: e.cls==="crit"||e.cls==="level"||e.cls==="prestige" ? 600 : 400,
-              fontStyle: e.cls==="area" ? "italic" : "normal",
-              borderTop: e.cls==="area" ? `1px solid ${C.b}` : "none",
-              paddingTop: e.cls==="area" ? 2 : 0, marginTop: e.cls==="area" ? 1 : 0,
-              animation:"fadeIn .18s ease" }}>
-              {e.text}
-            </div>
-          ))}
-        </div>
-      </main>
-
-      {/* ── RIGHT PANEL ── */}
-      <aside style={{ background:C.panel, borderLeft:`1px solid ${C.b}`, display:"flex", flexDirection:"column", overflow:"hidden" }}>
-        {/* Tabs */}
-        <div style={{ display:"flex", borderBottom:`1px solid ${C.b}` }}>
-          {[["passive","Passives"],["upgrade","Upgrades"],["inventory","Inventory"]].map(([t, label]) => (
-            <button key={t} onClick={() => setTab(t)} style={{ flex:1, padding:"8px 0", fontSize:9,
-              fontFamily:"Cinzel,serif", letterSpacing:1, border:"none", cursor:"pointer",
-              background: tab===t ? C.bg2 : "transparent",
-              color: tab===t ? C.goldB : C.dim,
-              borderBottom: tab===t ? `2px solid ${C.gold}` : "2px solid transparent",
-              transition:"all .12s" }}>
-              {label}
-            </button>
-          ))}
-        </div>
-        <div style={{ flex:1, overflowY:"auto", padding:9 }}>
-          {tab === "passive"   && <PassiveTab   gs={gs} alloc={allocPassive} />}
-          {tab === "upgrade"   && <UpgradeTab   gs={gs} buy={buyUpgrade} ctot={ctot} />}
-          {tab === "inventory" && <InventoryTab gs={gs} equip={equipFromInv} />}
-        </div>
-      </aside>
-
-      {/* Notifications */}
-      <div style={{ position:"fixed", top:58, left:"50%", transform:"translateX(-50%)",
-        display:"flex", flexDirection:"column", gap:4, alignItems:"center",
-        pointerEvents:"none", zIndex:999 }}>
-        {notifs.map(n => (
-          <div key={n.id} style={{ background:"rgba(6,5,3,.97)",
-            border:`1px solid ${n.cls==="unique"?C.unique:n.cls==="level"?C.blue:n.cls==="prestige"?C.prestige:C.goldD}`,
-            padding:"5px 18px", fontFamily:"Cinzel,serif", fontSize:12, letterSpacing:2,
-            color:n.cls==="unique"?C.unique:n.cls==="level"?"#88aaff":n.cls==="prestige"?C.prestige:n.cls==="warn"?"#ff8844":C.goldB,
-            animation:"popIn .22s ease", boxShadow:"0 3px 18px rgba(0,0,0,.85)" }}>
-            {n.text}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+function tick(ts){
+  if(!lastT)lastT=ts;const dt=Math.min(ts-lastT,200);lastT=ts;
+  if(!gs?.enemy){raf=requestAnimationFrame(tick);return;}
+  combatT+=dt;regenT+=dt;
+  if(regenT>=500){regenT-=500;gs.hp=Math.min(gs.maxHp,gs.hp+gs.maxHp*.008);}
+  const ai=1000/gs.aspd;
+  if(combatT>=ai){
+    combatT-=ai;
+    const bD=gs.physMin+Math.random()*(gs.physMax-gs.physMin);const isCrit=Math.random()*100<gs.critChance;
+    let dmg=Math.max(1,Math.floor(isCrit?bD*(gs.critMulti/100):bD));
+    gs.enemy.hp-=dmg;if(gs.leech>0)gs.hp=Math.min(gs.maxHp,gs.hp+dmg*gs.leech/100);
+    addFloat(fmt(dmg),isCrit?"#ffcc44":"#c0c0c0");
+    if(isCrit)addLog(`CRIT! ${gs.enemy.name} — ${fmt(dmg)}`,"crit");else addLog(`Hit ${gs.enemy.name} for ${fmt(dmg)}`,"hit");
+    const mit=Math.min(0.92,gs.armor/(gs.armor+500));const rMit=Math.min(0.75,gs.resist/100);
+    const eDmg=Math.max(1,Math.floor(gs.enemy.dmg*(1-mit)*(1-rMit)));
+    gs.hp=Math.max(0,gs.hp-eDmg);
+    if(gs.enemy.mods.includes("Regen"))gs.enemy.hp=Math.min(gs.enemy.maxHp,gs.enemy.hp+eDmg*.2);
+    if(gs.enemy.hp<=0)onKill();else if(gs.hp<=0){gs.hp=Math.floor(gs.maxHp*.25);addLog("Defeated... Resurrected.","level");gs.enemy.hp=gs.enemy.maxHp;}
+  }
+  updateUI();raf=requestAnimationFrame(tick);
 }
 
-// ── SHARED UI ─────────────────────────────────────────────────────────
-function PanelTitle({ children, style }) {
-  return (
-    <div style={{ fontFamily:"Cinzel,serif", fontSize:9, color:C.gold, letterSpacing:2,
-      textTransform:"uppercase", borderBottom:`1px solid ${C.b}`, paddingBottom:3, marginBottom:3, ...style }}>
-      {children}
-    </div>
-  );
+function onKill(){
+  const area=AREAS[Math.min(gs.areaIdx,AREAS.length-1)];
+  gs.kills++;gs.totalKills++;addLog(`Slew ${gs.enemy.name}!`,"kill");
+  const eg=Math.floor((15+area.t*8)*(gs.enemy.rarity==="boss"?30:gs.enemy.rarity==="rare"?8:gs.enemy.rarity==="magic"?3:1));
+  gs.exp+=eg;
+  while(gs.exp>=gs.expNext){gs.exp-=gs.expNext;gs.level++;gs.passivePoints++;gs.baseHp=Math.floor(gs.baseHp*1.08);gs.baseArm=Math.floor(gs.baseArm*1.05);gs.expNext=Math.floor(100*Math.pow(1.22,gs.level-1));addLog(`Level Up! Lv.${gs.level} — Passive point!`,"level");showNotif(`LEVEL UP  Lv.${gs.level}`,"#88aaff");recalc(gs);}
+  const ct=CURRD.reduce((a,c)=>a+c.w,0);let cr=Math.random()*ct,cc=0;
+  for(const c of CURRD){cc+=c.w;if(cr<cc){if(Math.random()<.4||gs.enemy.rarity!=="normal"){const qty=gs.enemy.rarity==="boss"?ri(3,10):1;const mult=Math.max(1,Math.floor(gs.currMult));const tot=qty*mult;gs.currency[c.id]+=tot;addLog(`${c.name} x${tot}`+(mult>1?` (x${mult})`:""),"currency");}break;}}
+  const ir=Math.random();const dr=gs.enemy.rarity==="boss"?(Math.random()<.2?"unique":"rare"):ir<.012?"unique":ir<.08?"rare":ir<.3?"magic":ir<.55?"normal":null;
+  if(dr){
+    const item=genItem(area.t,dr);const cs=iScore(gs.equip[item.slot]);const ns=iScore(item);
+    if(ns>cs){if(gs.equip[item.slot])gs.inventory.push(gs.equip[item.slot]);gs.equip[item.slot]=item;addLog(`Auto-equipped ${item.name}!`,"kill");recalc(gs);}
+    else{gs.inventory.push(item);if(gs.inventory.length>20)gs.inventory.shift();}
+    if(item.rarity==="unique"){addLog(`UNIQUE FOUND: ${item.name}`,"unique");showNotif(item.name,RCOL.unique);}
+    else if(item.rarity!=="normal")addLog(`${item.rarity==="rare"?"★":"◆"} ${item.name}`,"drop");
+    if(curTab==="inventory")renderTab();
+  }
+  if(gs.areaIdx>=AREAS.length-1&&gs.kills>=area.kills){gs.prestigePts++;addLog("Max area looped! +1 Prestige Point!","prestige");showNotif("+1 Prestige Pt","#ee88ee");}
+  if(gs.kills>=area.kills){
+    gs.kills=0;gs.areaClears=(gs.areaClears||0)+1;
+    if(gs.areaClears%10===0){gs.ascPoints=(gs.ascPoints||0)+1;addLog(`Labyrinth cleared! Ascendancy Point granted! (${gs.ascPoints} total)`,"asc");showNotif("ASCENDANCY POINT!","#f0b030");updateAscBtn();}
+    const next=Math.min(gs.areaIdx+1,AREAS.length-1);
+    if(next!==gs.areaIdx){addLog(`Cleared "${area.name}" — ${AREAS[next].name} T${AREAS[next].t}`,"area");showNotif(`T${AREAS[next].t} ${AREAS[next].name}`,"#c89028");}
+    gs.areaIdx=next;gs.enemy=genEnemy(AREAS[next],AREAS[next].kills);
+  }else{gs.enemy=genEnemy(area,area.kills-gs.kills);}
+  if(gs.hp<=0){gs.hp=Math.floor(gs.maxHp*.25);addLog("Defeated... Resurrected.","level");}
+  sched();
 }
 
-function Badge({ label, val, color }) {
-  return (
-    <div style={{ display:"flex", alignItems:"center", gap:3, fontSize:11 }}>
-      <span style={{ color:C.dim }}>{label}</span>
-      <span style={{ color:color||C.gold, fontFamily:"Cinzel,serif", fontWeight:600 }}>{val}</span>
-    </div>
-  );
+function updateUI(){
+  const area=AREAS[Math.min(gs.areaIdx,AREAS.length-1)];
+  const avg=(gs.physMin+gs.physMax)/2;const cMul=1+(gs.critChance/100)*(gs.critMulti/100-1);
+  const dps=avg*gs.aspd*cMul;const ct=cTot(gs.currency);
+  document.getElementById("hlv").textContent=gs.level;
+  document.getElementById("hdps").textContent=fmt(dps)+"/s";
+  document.getElementById("hkills").textContent=fmt(gs.totalKills);
+  document.getElementById("hpres").textContent=gs.prestigeLvl||0;
+  document.getElementById("harea").textContent=`${area.name} T${area.t}`;
+  document.getElementById("hpp").textContent=gs.prestigePts||0;
+  document.getElementById("xpf").style.width=Math.min(100,gs.exp/gs.expNext*100)+"%";
+  document.getElementById("xpt").textContent=`${fmt(gs.exp)}/${fmt(gs.expNext)}`;
+  const pb=document.getElementById("pbtn");if(pb)pb.style.display=(gs.prestigePts||0)>0?"block":"none";
+  const hpPct=Math.max(0,gs.hp/gs.maxHp*100);
+  document.getElementById("hpbar").style.width=hpPct+"%";
+  document.getElementById("hptxt").textContent=`${fmt(Math.floor(gs.hp))}/${fmt(gs.maxHp)}`;
+  document.getElementById("sdmg").textContent=`${fmt(gs.physMin)}-${fmt(gs.physMax)}`;
+  document.getElementById("sdps").textContent=fmt(dps)+"/s";
+  document.getElementById("saspd").textContent=gs.aspd.toFixed(2)+"/s";
+  document.getElementById("scrit").textContent=`${gs.critChance.toFixed(0)}%/${gs.critMulti.toFixed(0)}%`;
+  document.getElementById("sarm").textContent=fmt(gs.armor);
+  document.getElementById("scurr").textContent=fmt(ct);
+  document.getElementById("scmult").textContent=`x${(gs.currMult||1).toFixed(1)}`;
+  if(gs.classKey){const cls=CLASSES[gs.classKey];const bd=document.getElementById("cbadge");if(bd){bd.style.display="block";bd.style.color=cls.color;bd.style.borderColor=cls.color+"88";bd.style.background=cls.color+"11";bd.textContent=`${cls.ico} ${cls.name}`;}if(gs.ascKey){const asc=cls.asc[gs.ascKey];const ai=document.getElementById("ainfo");if(ai)ai.style.display="block";const an=document.getElementById("aname");if(an){an.textContent=asc.name;an.style.color=asc.color;}const at=document.getElementById("ataken");if(at)at.textContent=gs.ascTaken.length>0?gs.ascTaken.map(id=>asc.nodes.find(n=>n.id===id)?.name||id).join(", "):"No nodes taken yet";}}
+  const eq=document.getElementById("eqslots");if(eq){eq.innerHTML="";for(const slot of SLOTS){const it=gs.equip[slot];const d=document.createElement("div");d.className="eqs";d.style.borderColor=it?RCOL[it.rarity]+"77":"#2c2015";d.innerHTML=`<div class="eqsl">${SLOTL[slot]}</div><div class="eqsi" style="color:${it?RCOL[it.rarity]:"#2c2015"}">${it?it.name.slice(0,22)+(it.name.length>22?"...":""):"—"}</div>`;eq.appendChild(d);}}
+  const cg=document.getElementById("currgrid");if(cg){cg.innerHTML="";for(const c of CURRD){const d=document.createElement("div");d.className="ci";d.innerHTML=`<div class="cion" style="color:${c.c};border-color:${c.c};background:${c.c}22">${c.s[0]}</div><div><div style="font-size:8px;color:#786855">${c.s}</div><div style="font-size:10px;font-weight:bold;color:#a89878">${fmt(gs.currency[c.id])}</div></div>`;cg.appendChild(d);}}
+  document.getElementById("mtbadge").textContent=`T${area.t} MAP`;
+  document.getElementById("mpf").style.width=(gs.kills/area.kills*100)+"%";
+  document.getElementById("mkc").textContent=gs.kills;document.getElementById("mkt").textContent=area.kills;
+  if(gs.enemy){
+    const eb=document.getElementById("ebox");eb.className=gs.enemy.rarity==="boss"?"boss":"";
+    const ne=document.getElementById("ename");ne.textContent=gs.enemy.name;ne.style.color=RCOL[gs.enemy.rarity]||RCOL.normal;
+    document.getElementById("emods").innerHTML=gs.enemy.mods.map(m=>`<span class="emod">${m}</span>`).join("");
+    const eH=Math.max(0,gs.enemy.hp/gs.enemy.maxHp*100);
+    document.getElementById("ehpf").style.width=eH+"%";
+    document.getElementById("ehpt").textContent=`${fmt(Math.max(0,Math.floor(gs.enemy.hp)))} / ${fmt(gs.enemy.maxHp)}`;
+  }
+}
+function updateAscBtn(){const btn=document.getElementById("ascbtn");if(!btn)return;const has=(gs.ascPoints||0)>0;btn.disabled=!has;btn.textContent=has?`ASCENDANCY (${gs.ascPoints}pt)`:"ASCENDANCY (clear 10 areas)";}
+
+function setTab(t){curTab=t;document.querySelectorAll(".tb").forEach((b,i)=>{b.classList.toggle("active",["passive","upgrade","inventory"][i]===t);});renderTab();}
+function renderTab(){const el=document.getElementById("tcon");if(!el)return;if(curTab==="passive")renderPassive(el);else if(curTab==="upgrade")renderUpgrade(el);else renderInventory(el);}
+function renderPassive(el){const canA=n=>!gs.allocated.includes(n.id)&&gs.passivePoints>0&&(!n.req||n.req.some(r=>gs.allocated.includes(r))||gs.allocated.length===0);let h=`<div style="font-size:11px;color:#786855;margin-bottom:7px">Points: <b style="color:#c89028">${gs.passivePoints}</b></div>`;for(const row of[0,1,2]){const ns=PASSIVES.filter(n=>n.row===row);h+=`<div style="font-size:9px;color:#786855;margin-bottom:2px;font-style:italic">${["Basic","Notable","Keystone"][row]} Nodes</div><div class="pgrid">`;for(const n of ns){const al=gs.allocated.includes(n.id);const av=canA(n);h+=`<div class="pn ${n.ty}${al?" al":av?" av":""}" style="${!al&&!av?"opacity:.35":""}" onclick="allocP('${n.id}')">${n.s.slice(0,6)}<div class="ptt"><b>${n.name}</b>${n.desc}</div></div>`;}h+="</div>";}if(gs.allocated.length>0){h+=`<div class="pt" style="margin-top:4px">Allocated</div>`;for(const id of gs.allocated){const n=PASSIVES.find(x=>x.id===id);if(n)h+=`<div style="font-size:10px;color:#f0b030;padding:1px 0">✦ ${n.name}</div>`;}}el.innerHTML=h;}
+function renderUpgrade(el){const ct=cTot(gs.currency);let h=`<div style="font-size:10px;color:#786855;margin-bottom:3px">Total: <b style="color:#c89028">${fmt(ct)}</b></div>`;for(const def of UPGRADES){const lv=gs.upgrades[def.id]||0;const cost=upgC(def,lv);const mx=lv>=def.max;const can=!mx&&ct>=cost;h+=`<div class="uc${can?" can":""}"><div class="uh"><span class="uico">${def.ico}</span><span class="unm">${def.name}</span><span class="ulv">Lv${lv}/${def.max}</span></div><div class="ud">${def.desc}</div><div class="upb"><div class="upbf" style="width:${lv/def.max*100}%"></div></div><button class="ub${mx?" max":can?" buy":""}" onclick="buyUpg('${def.id}')">${mx?"MAXED":fmt(cost)+" curr"}</button></div>`;}el.innerHTML=h;}
+function renderInventory(el){let h=`<div style="font-size:10px;color:#786855;margin-bottom:4px">${gs.inventory.length}/20 slots</div>`;if(!gs.inventory.length)h+=`<div style="font-size:11px;color:#786855;font-style:italic;text-align:center;padding:20px 0">No items</div>`;else for(let i=0;i<gs.inventory.length;i++){const it=gs.inventory[i];const col=RCOL[it.rarity]||RCOL.normal;h+=`<div class="iv" style="border-color:${col}77" onclick="equipInv(${i})"><div style="font-size:10px;color:${col}">${it.name}</div><div style="font-size:9px;color:#786855;margin-top:1px">${it.slot} · ${it.stats?.join(" / ")||""}</div><div style="font-size:8px;color:#5a3e10;font-weight:bold;margin-top:2px">▶ Equip</div></div>`;}el.innerHTML=h;}
+
+function allocP(id){const n=PASSIVES.find(x=>x.id===id);if(!n||gs.allocated.includes(id)||gs.passivePoints<=0)return;const ok=!n.req||n.req.some(r=>gs.allocated.includes(r))||gs.allocated.length===0;if(!ok){showNotif("Prerequisite required!","#ff8844");return;}gs.allocated.push(id);gs.passivePoints--;addLog(`Passive "${n.name}" allocated!`,"passive");recalc(gs);renderTab();sched();}
+function buyUpg(id){const def=UPGRADES.find(x=>x.id===id);if(!def)return;const lv=gs.upgrades[id]||0;if(lv>=def.max)return;const cost=upgC(def,lv);const ct=cTot(gs.currency);if(ct<cost){showNotif("Not enough currency!","#ff8844");return;}let rem=cost;const cur={...gs.currency};for(const c of[...CURRD].reverse()){const sp=Math.min(cur[c.id],Math.ceil(rem/CURRV[c.id]));cur[c.id]-=sp;rem-=sp*CURRV[c.id];if(rem<=0)break;}gs.currency=cur;gs.upgrades[id]=(gs.upgrades[id]||0)+1;addLog(`${def.name} Lv.${gs.upgrades[id]}`,"upgrade");recalc(gs);renderTab();sched();}
+function equipInv(idx){const it=gs.inventory[idx];if(!it)return;const old=gs.equip[it.slot];gs.equip[it.slot]=it;gs.inventory.splice(idx,1);if(old)gs.inventory.unshift(old);if(gs.inventory.length>20)gs.inventory.pop();addLog(`Equipped ${it.name}`,"kill");recalc(gs);renderTab();sched();}
+
+function openOverlay(mode){overlayMode=mode;const ov=document.getElementById("overlay");const ob=document.getElementById("obox");if(!ov||!ob)return;ov.classList.add("show");ov.scrollTop=0;if(mode==="class")renderClassSelect(ob);else if(mode==="asc")renderAscOverlay(ob);else if(mode==="prestige")renderPrestigeOverlay(ob);}
+function closeOverlay(){const ov=document.getElementById("overlay");if(ov)ov.classList.remove("show");overlayMode=null;}
+function overlayBgClick(e){if(e.target===document.getElementById("overlay"))closeOverlay();}
+
+function renderClassSelect(ob){ob.style.borderColor="#c89028";ob.style.maxWidth="620px";let h=`<h2>CHOOSE YOUR EXILE</h2><div class="osub">Each class has 3 unique Ascendancy paths.</div><div class="cg6">`;for(const[ck,cls]of Object.entries(CLASSES)){const ascList=Object.values(cls.asc).map(a=>`<span style="color:${a.color};font-size:9px">${a.name}</span>`).join(" · ");h+=`<div class="ccard" onclick="selectClass('${ck}')"><div class="ccico">${cls.ico}</div><div class="ccnm" style="color:${cls.color}">${cls.name}</div><div class="cctg">${cls.tag}</div><div class="ccbn">${cls.bonus}</div><div style="margin-top:6px;line-height:1.7">${ascList}</div></div>`;}h+=`</div>`;ob.innerHTML=h;}
+function renderAscOverlay(ob){if(!gs?.classKey){ob.innerHTML="<h2>No class</h2>";return;}const cls=CLASSES[gs.classKey];ob.style.borderColor="#c89028";ob.style.maxWidth="560px";if(!gs.ascKey){let h=`<h2>ASCENDANCY — ${cls.name.toUpperCase()}</h2><div class="osub">${gs.ascPoints} point(s) available. Choose your Ascendancy class.</div><div class="ag3">`;for(const[ak,asc]of Object.entries(cls.asc)){h+=`<div class="acard" onclick="chooseAsc('${ak}')" style="border-color:${asc.color}88"><div style="font-size:11px;font-weight:bold;color:${asc.color};margin-bottom:3px">${asc.name}</div><div style="font-size:9px;color:#786855;line-height:1.4">${asc.desc}</div></div>`;}h+=`</div><div class="obtnrow"><button class="osec" onclick="closeOverlay()">Cancel</button></div>`;ob.innerHTML=h;return;}const asc=cls.asc[gs.ascKey];let h=`<h2>${asc.name.toUpperCase()}</h2><div class="osub" style="color:${asc.color}">${asc.desc}</div><div style="font-size:10px;color:#786855;margin-bottom:8px">${gs.ascPoints} point(s) available · ${gs.ascTaken.length} nodes taken</div><div class="ang">`;for(const node of asc.nodes){const taken=gs.ascTaken.includes(node.id);const reqMet=!node.req||node.req.some(r=>gs.ascTaken.includes(r));const canT=!taken&&reqMet&&(gs.ascPoints||0)>=node.cost;h+=`<div class="anc${taken?" taken":!reqMet?" locked":""}" onclick="${canT?`takeAscNode('${node.id}')`:""}" style="border-color:${taken?asc.color:"#2c2015"}"><div class="anname" style="color:${taken?asc.color:"#c89028"}">${node.name}${taken?" ✦":""}</div><div class="antype">${node.t} · ${node.cost}pt</div><div class="andesc">${node.desc}</div></div>`;}h+=`</div><div class="obtnrow"><button class="osec" onclick="gs.ascKey=null;renderAscOverlay(document.getElementById('obox'))">← Change class</button><button class="osec" onclick="closeOverlay()">Close</button></div>`;ob.innerHTML=h;}
+function chooseAsc(ak){gs.ascKey=ak;renderAscOverlay(document.getElementById("obox"));sched();}
+function takeAscNode(id){const cls=CLASSES[gs.classKey];if(!cls)return;const asc=cls.asc[gs.ascKey];if(!asc)return;const node=asc.nodes.find(x=>x.id===id);if(!node)return;if(gs.ascTaken.includes(id)||(gs.ascPoints||0)<node.cost)return;gs.ascTaken.push(id);gs.ascPoints-=node.cost;addLog(`Ascendancy: "${node.name}" taken!`,"asc");showNotif(node.name,"#f0b030");recalc(gs);updateAscBtn();renderAscOverlay(document.getElementById("obox"));sched();}
+function renderPrestigeOverlay(ob){ob.style.borderColor="#ee88ee";ob.style.maxWidth="460px";let h=`<h2 style="color:#ee88ee">PRESTIGE</h2><div class="osub">Reset everything. Grow exponentially stronger.<br>Points: <b style="color:#ee88ee;font-size:13px">${gs.prestigePts}</b></div><div style="font-size:9px;color:#c89028;letter-spacing:2px;border-bottom:1px solid #2c2015;padding-bottom:3px;margin-bottom:8px">PERMANENT UPGRADES</div>`;for(const pd of PUPS){const cnt=(gs.pUpgrades||{})[pd.id]||0;const can=(gs.prestigePts||0)>=pd.cost;h+=`<div class="pug" style="border-color:${can?"#ee88ee44":"#2c2015"}"><span style="font-size:14px">${pd.ico}</span><div style="flex:1"><div style="font-size:10px;color:#ee88ee">${pd.name}${cnt>0?` <b style="color:#f0b030">x${cnt}</b>`:""}</div><div style="font-size:9px;color:#786855">${pd.desc}</div></div><button onclick="buyPU('${pd.id}')" style="padding:2px 8px;font-size:9px;background:${can?"rgba(100,0,110,.4)":"transparent"};border:1px solid ${can?"#ee88ee":"#2c2015"};color:${can?"#ee88ee":"#2c2015"};cursor:${can?"pointer":"default"};font-family:Georgia,serif">${pd.cost}pt</button></div>`;}h+=`<div class="obtnrow"><button class="opri" style="border-color:#ee88ee;color:#ee88ee;background:#1a0820" onclick="doPrestige()">✦ PRESTIGE (1pt)</button><button class="osec" onclick="closeOverlay()">Cancel</button></div>`;ob.innerHTML=h;}
+function buyPU(id){const pd=PUPS.find(x=>x.id===id);if(!pd)return;if((gs.prestigePts||0)<pd.cost){showNotif("Not enough points!","#ff8844");return;}gs.pUpgrades=gs.pUpgrades||{};gs.pUpgrades[id]=(gs.pUpgrades[id]||0)+1;gs.prestigePts-=pd.cost;addLog(`Prestige upgrade "${pd.name}"!`,"prestige");recalc(gs);renderPrestigeOverlay(document.getElementById("obox"));sched();}
+function doPrestige(){if(!(gs.prestigePts>0)){showNotif("Not enough points!","#ff8844");return;}const newLvl=(gs.prestigeLvl||0)+1;addLog(`PRESTIGE Lv.${newLvl} — Returning stronger!`,"prestige");showNotif(`PRESTIGE Lv.${newLvl}`,"#ee88ee");const saved={prestigeLvl:newLvl,prestigePts:gs.prestigePts-1,pUpgrades:{...gs.pUpgrades},totalKills:gs.totalKills||0};const ck=gs.classKey;gs=Object.assign(makeInit(ck),saved);recalc(gs);gs.enemy=genEnemy(AREAS[0],AREAS[0].kills);closeOverlay();updateAscBtn();setTab("passive");saveGame();}
+
+function selectClass(ck){gs=recalc(makeInit(ck));gs.enemy=genEnemy(AREAS[0],AREAS[0].kills);closeOverlay();updateAscBtn();renderTab();addLog(`${CLASSES[ck].name} chosen. The hunt begins.`,"area");saveGame();}
+
+function init(){
+  setSdot("");
+  const saved=loadGame();
+  if(saved?.classKey&&CLASSES[saved.classKey]){
+    gs=saved;
+    if(!Array.isArray(gs.allocated))gs.allocated=[];
+    if(!Array.isArray(gs.ascTaken))gs.ascTaken=[];
+    gs.pUpgrades=gs.pUpgrades||{};
+    gs.upgrades=gs.upgrades||{u0:0,u1:0,u2:0,u3:0,u4:0,u5:0,u6:0,u7:0,u8:0,u9:0};
+    gs.currency=gs.currency||{alt:0,alch:0,chaos:0,exalt:0};
+    gs.equip=gs.equip||{weapon:null,armor:null,helm:null,boots:null,ring:null};
+    gs.inventory=gs.inventory||[];
+    gs.se=gs.se||CLASSES[gs.classKey]?.se||{};
+    recalc(gs);
+    const ai=Math.min(gs.areaIdx||0,AREAS.length-1);
+    const kl=Math.max(1,AREAS[ai].kills-(gs.kills||0));
+    gs.enemy=genEnemy(AREAS[ai],kl);
+    addLog(`Welcome back, ${CLASSES[gs.classKey].name}! (save restored)`,"area");
+    updateAscBtn();renderTab();setSdot("ok");
+  }else{
+    openOverlay("class");
+  }
+  raf=requestAnimationFrame(tick);
 }
 
-// ── PASSIVE TAB ───────────────────────────────────────────────────────
-function PassiveTab({ gs, alloc }) {
-  const canAlloc = n =>
-    !gs.allocated.has(n.id) && gs.passivePoints > 0 &&
-    (!n.req || n.req.some(r => gs.allocated.has(r)) || gs.allocated.size === 0);
-
-  return (
-    <div>
-      <div style={{ fontSize:11, color:C.dim, marginBottom:7 }}>
-        Points: <span style={{ color:C.gold, fontFamily:"Cinzel,serif", fontWeight:600 }}>{gs.passivePoints}</span>
-      </div>
-      {[0, 1, 2].map(row => {
-        const nodes = PASSIVES.filter(n => n.row === row);
-        return (
-          <div key={row} style={{ marginBottom:9 }}>
-            <div style={{ fontSize:9, color:C.dim, marginBottom:2, fontStyle:"italic" }}>
-              {["Basic Nodes","Notable Nodes","Keystones"][row]}
-            </div>
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:3 }}>
-              {nodes.map(node => {
-                const al = gs.allocated.has(node.id);
-                const av = canAlloc(node);
-                return (
-                  <div key={node.id} onClick={() => av && alloc(node)}
-                    title={`${node.name}\n${node.desc}`}
-                    style={{ aspectRatio:"1",
-                      borderRadius: node.type==="keystone" ? 4 : node.type==="notable" ? "18%" : "50%",
-                      border:`2px solid ${al ? C.gold : av ? C.goldD : C.b}`,
-                      background: al ? `radial-gradient(circle,rgba(200,149,42,.28),rgba(200,149,42,.04))` : C.bg3,
-                      display:"flex", alignItems:"center", justifyContent:"center",
-                      fontSize:7, fontFamily:"Cinzel,serif", fontWeight:700,
-                      color: al ? C.goldB : av ? C.goldD : C.b,
-                      cursor: av ? "pointer" : "default",
-                      opacity: !al && !av ? 0.38 : 1,
-                      transition:"all .12s",
-                      boxShadow: al ? "0 0 8px rgba(200,149,42,.32)" : "none",
-                    }}>
-                    {node.short.slice(0, 6)}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })}
-      {gs.allocated.size > 0 && (
-        <div style={{ marginTop:5 }}>
-          <PanelTitle>Allocated</PanelTitle>
-          {[...gs.allocated].map(id => {
-            const n = PASSIVES.find(x => x.id === id);
-            return n ? <div key={id} style={{ fontSize:10, color:C.goldB, padding:"1px 0" }}>✦ {n.name}</div> : null;
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── UPGRADE TAB ───────────────────────────────────────────────────────
-function UpgradeTab({ gs, buy, ctot }) {
-  return (
-    <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
-      <div style={{ fontSize:10, color:C.dim, marginBottom:2 }}>
-        Total currency: <span style={{ color:C.gold, fontFamily:"Cinzel,serif" }}>{fmt(ctot)}</span>
-      </div>
-      {UPGRADES.map(def => {
-        const lv    = gs.upgrades[def.id] || 0;
-        const cost  = upgC(def, lv);
-        const maxed = lv >= def.max;
-        const can   = !maxed && ctot >= cost;
-        const pct   = lv / def.max * 100;
-        return (
-          <div key={def.id} style={{ background:C.bg3, border:`1px solid ${can?C.goldD:C.b}`, borderRadius:3, padding:"6px 8px", transition:"border-color .12s" }}>
-            <div style={{ display:"flex", alignItems:"center", gap:5, marginBottom:3 }}>
-              <span style={{ fontSize:14 }}>{def.icon}</span>
-              <div style={{ flex:1 }}>
-                <div style={{ fontSize:10, color:maxed ? C.goldB : C.white, fontFamily:"Cinzel,serif" }}>{def.name}</div>
-                <div style={{ fontSize:9, color:C.dim, fontStyle:"italic" }}>{def.desc}</div>
-              </div>
-              <div style={{ fontFamily:"Cinzel,serif", fontSize:8, color:C.goldD }}>Lv{lv}/{def.max}</div>
-            </div>
-            <div style={{ height:3, background:C.bg2, border:`1px solid ${C.b}`, borderRadius:1, overflow:"hidden", marginBottom:4 }}>
-              <div style={{ height:"100%", width:pct+"%", background:maxed ? C.gold : `linear-gradient(90deg,${C.goldD},${C.gold})`, transition:"width .2s" }} />
-            </div>
-            <button onClick={() => buy(def)} disabled={!can} style={{ width:"100%", padding:"3px 0",
-              fontSize:9, fontFamily:"Cinzel,serif", letterSpacing:1,
-              background: maxed ? "transparent" : can ? `linear-gradient(135deg,#261600,#443000)` : "transparent",
-              border:`1px solid ${maxed?C.goldD:can?C.gold:C.b}`,
-              color: maxed ? C.gold : can ? C.goldB : C.b,
-              cursor: can ? "pointer" : "default", transition:"all .12s" }}>
-              {maxed ? "MAXED" : `${fmt(cost)} currency`}
-            </button>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// ── INVENTORY TAB ─────────────────────────────────────────────────────
-function InventoryTab({ gs, equip }) {
-  return (
-    <div>
-      <div style={{ fontSize:10, color:C.dim, marginBottom:5 }}>{gs.inventory.length} / 20 slots</div>
-      <div style={{ display:"flex", flexDirection:"column", gap:3 }}>
-        {gs.inventory.map((item, i) => (
-          <div key={i} onClick={() => equip(i)} style={{ background:C.bg3,
-            border:`1px solid ${rarColor(item.rarity)+"88"}`, borderRadius:3, padding:"5px 7px", cursor:"pointer" }}>
-            <div style={{ fontSize:10, color:rarColor(item.rarity), fontWeight:item.rarity==="unique"?600:400 }}>
-              {item.name}
-            </div>
-            <div style={{ display:"flex", gap:6, marginTop:1, flexWrap:"wrap" }}>
-              <span style={{ fontSize:9, color:C.dim }}>{item.slot}</span>
-              {item.stats?.map((s, si) => <span key={si} style={{ fontSize:9, color:C.blue }}>{s}</span>)}
-            </div>
-            <div style={{ fontSize:8, color:C.goldD, marginTop:2, fontFamily:"Cinzel,serif" }}>▶ Equip</div>
-          </div>
-        ))}
-        {gs.inventory.length === 0 && (
-          <div style={{ fontSize:11, color:C.dim, fontStyle:"italic", textAlign:"center", padding:"20px 0" }}>No items</div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ── PRESTIGE MODAL ────────────────────────────────────────────────────
-function PrestigeModal({ gs, onPrestige, onBuy, onClose }) {
-  return (
-    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.88)", zIndex:500,
-      display:"flex", alignItems:"center", justifyContent:"center" }}>
-      <div style={{ background:"#180e05", border:`2px solid ${C.prestige}`, padding:24,
-        maxWidth:460, width:"90%", boxShadow:`0 0 60px rgba(220,100,220,.22)`,
-        maxHeight:"80vh", overflowY:"auto", animation:"popIn .2s ease" }}>
-
-        <div style={{ fontFamily:"Cinzel,serif", fontSize:18, color:C.prestige, letterSpacing:3,
-          marginBottom:4, textAlign:"center", textShadow:"0 0 18px rgba(220,100,220,.5)" }}>
-          ✦ PRESTIGE ✦
-        </div>
-        <div style={{ fontSize:12, color:C.dim, marginBottom:14, textAlign:"center" }}>
-          Reset everything and grow exponentially stronger.<br/>
-          Prestige Points: <span style={{ color:C.prestige, fontFamily:"Cinzel,serif", fontSize:14 }}>{gs.prestigePts}</span>
-        </div>
-
-        <PanelTitle>Permanent Upgrades</PanelTitle>
-        <div style={{ display:"flex", flexDirection:"column", gap:5, marginBottom:14 }}>
-          {PRESTIGE_UPGRADES.map(pd => {
-            const cnt = (gs.pUpgrades || {})[pd.id] || 0;
-            const can = (gs.prestigePts || 0) >= pd.cost;
-            return (
-              <div key={pd.id} style={{ background:C.bg3, border:`1px solid ${can?C.prestige+"66":C.b}`,
-                borderRadius:3, padding:"7px 9px", display:"flex", alignItems:"center", gap:8 }}>
-                <span style={{ fontSize:16 }}>{pd.icon}</span>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontSize:11, color:C.prestige, fontFamily:"Cinzel,serif" }}>
-                    {pd.name} {cnt > 0 && <span style={{ color:C.goldB }}>×{cnt}</span>}
-                  </div>
-                  <div style={{ fontSize:10, color:C.dim }}>{pd.desc}</div>
-                </div>
-                <button onClick={() => onBuy(pd)} disabled={!can} style={{ padding:"3px 9px",
-                  fontSize:9, fontFamily:"Cinzel,serif",
-                  background: can ? "rgba(100,0,110,.45)" : "transparent",
-                  border:`1px solid ${can?C.prestige:C.b}`, color:can?C.prestige:C.b,
-                  cursor:can?"pointer":"default" }}>
-                  {pd.cost}pt
-                </button>
-              </div>
-            );
-          })}
-        </div>
-
-        <div style={{ display:"flex", gap:8 }}>
-          <button onClick={onPrestige} style={{ flex:1, padding:"9px 0", fontFamily:"Cinzel,serif",
-            fontSize:13, letterSpacing:2, background:"linear-gradient(135deg,#2a0030,#580060)",
-            border:`2px solid ${C.prestige}`, color:C.prestige, cursor:"pointer",
-            boxShadow:"0 0 18px rgba(220,100,220,.3)" }}>
-            ✦ PRESTIGE (costs 1pt)
-          </button>
-          <button onClick={onClose} style={{ padding:"9px 14px", fontFamily:"Cinzel,serif",
-            fontSize:11, background:"transparent", border:`1px solid ${C.b}`, color:C.dim, cursor:"pointer" }}>
-            Cancel
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── OFFLINE REWARD MODAL ──────────────────────────────────────────────
-function OfflineModal({ data, onClose }) {
-  return (
-    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.88)", zIndex:500,
-      display:"flex", alignItems:"center", justifyContent:"center" }}>
-      <div style={{ background:"#100c06", border:`2px solid ${C.goldB}`, padding:28,
-        maxWidth:380, width:"90%", boxShadow:"0 0 50px rgba(200,149,42,.3)",
-        animation:"popIn .22s ease", textAlign:"center" }}>
-        <div style={{ fontFamily:"Cinzel,serif", fontSize:16, color:C.goldB, letterSpacing:3, marginBottom:6 }}>
-          ⚔ OFFLINE REWARDS
-        </div>
-        <div style={{ fontSize:12, color:C.dim, marginBottom:16 }}>
-          You were away for {formatTime(data.seconds)}.
-        </div>
-        <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:20 }}>
-          <RewardRow icon="💀" label="Enemies Slain"  val={fmt(data.kills)} />
-          <RewardRow icon="💰" label="Currency Earned" val={fmt(data.currEarned) + " value"} />
-          <RewardRow icon="⬆" label="Experience"      val={fmt(data.expGained) + " EXP"} />
-        </div>
-        <button onClick={onClose} style={{ padding:"9px 32px", fontFamily:"Cinzel,serif",
-          fontSize:13, letterSpacing:2, background:`linear-gradient(135deg,#261600,#4a3000)`,
-          border:`2px solid ${C.gold}`, color:C.goldB, cursor:"pointer",
-          boxShadow:"0 0 16px rgba(200,149,42,.25)" }}>
-          CLAIM REWARDS
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function RewardRow({ icon, label, val }) {
-  return (
-    <div style={{ display:"flex", alignItems:"center", gap:10, background:C.bg3,
-      border:`1px solid ${C.b}`, borderRadius:3, padding:"7px 12px" }}>
-      <span style={{ fontSize:18 }}>{icon}</span>
-      <span style={{ flex:1, fontSize:12, color:C.dim, textAlign:"left" }}>{label}</span>
-      <span style={{ fontFamily:"Cinzel,serif", fontSize:13, color:C.goldB, fontWeight:600 }}>{val}</span>
-    </div>
-  );
-}
-
-function formatTime(sec) {
-  if (sec < 60) return `${sec}s`;
-  if (sec < 3600) return `${Math.floor(sec/60)}m ${sec%60}s`;
-  return `${Math.floor(sec/3600)}h ${Math.floor((sec%3600)/60)}m`;
-}
+init();
+</script>
+</body></html>
