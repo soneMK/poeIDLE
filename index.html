@@ -1,526 +1,606 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Path of Idle</title>
+<html lang="en"><head><meta charset="UTF-8"><title>Path of Idle</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;background:#090705}
-body{color:#e8dac5;font-family:Georgia,serif;font-size:12px;overflow:hidden}
-::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:#0a0804}::-webkit-scrollbar-thumb{background:#3a2a14;border-radius:2px}
-@keyframes floatUp{0%{opacity:1;transform:translateY(0) translateX(-50%)}100%{opacity:0;transform:translateY(-48px) translateX(-50%)}}
-@keyframes popIn{0%{opacity:0;transform:scale(.75)}60%{transform:scale(1.08)}100%{opacity:1;transform:scale(1)}}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
-@keyframes bossGlow{0%,100%{border-color:#4a2810}50%{border-color:#dd6020}}
-@keyframes flaskReady{0%,100%{opacity:1}50%{opacity:.7}}
+html,body{height:100%;background:#0a0806;overflow:hidden}
+body{color:#e8dac5;font-family:Georgia,serif;font-size:13px}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:#0a0806}::-webkit-scrollbar-thumb{background:#3a2a14;border-radius:2px}
+@keyframes floatUp{0%{opacity:1;transform:translateY(0) translateX(-50%)}100%{opacity:0;transform:translateY(-50px) translateX(-50%)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+@keyframes bossGlow{0%,100%{box-shadow:0 0 0 1px #5a2810}50%{box-shadow:0 0 8px 2px #dd5010}}
+@keyframes invFlash{0%,100%{opacity:1}50%{opacity:.4}}
 
-/* ── LAYOUT ── */
-#root{display:flex;flex-direction:column;height:100vh;background:#090705;position:relative}
-#hdr{display:flex;align-items:center;gap:10px;padding:5px 12px;background:#100d07;border-bottom:1px solid #3a2814;flex-shrink:0;min-height:44px}
-#hdr h1{font-size:12px;color:#f0b030;letter-spacing:3px;white-space:nowrap}
-.hb{display:flex;align-items:center;gap:3px;font-size:10px;white-space:nowrap}
+#root{display:flex;flex-direction:column;height:100vh}
+
+/* HEADER */
+#hdr{display:flex;align-items:center;gap:12px;padding:0 14px;background:#12100a;border-bottom:1px solid #3a2814;height:44px;flex-shrink:0}
+#hdr h1{font-size:14px;color:#f0b030;letter-spacing:3px;white-space:nowrap;margin-right:4px}
+.hb{display:flex;align-items:center;gap:3px;font-size:12px;white-space:nowrap}
 .hl{color:#786855}.hv{color:#c89028;font-weight:bold}
-#xpw{flex:1;min-width:50px}
-#xpbg{height:4px;background:#1a1308;border:1px solid #2c2015;border-radius:2px;overflow:hidden}
+#xpw{flex:1;min-width:60px}
+#xpbg{height:5px;background:#1a1308;border:1px solid #2c2015;border-radius:2px;overflow:hidden}
 #xpf{height:100%;background:#c89028;transition:width .3s}
 #xpt{font-size:9px;color:#786855;text-align:right;margin-top:1px}
-.sdot{width:6px;height:6px;border-radius:50%;background:#786855;flex-shrink:0}
-.sdot.ok{background:#44bb88}.sdot.saving{background:#f0b030;animation:pulse 1s infinite}
+.sdot{width:7px;height:7px;border-radius:50%;background:#786855;flex-shrink:0}
+.sdot.ok{background:#44cc88}.sdot.sv{background:#f0b030;animation:pulse 1s infinite}
+
+/* MAIN */
 #main{display:flex;flex:1;overflow:hidden;min-height:0}
 
-/* ── LEFT ── */
-#left{width:174px;flex-shrink:0;background:#0c0a07;border-right:1px solid #2c2015;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:3px}
-.pt{font-size:9px;color:#c89028;letter-spacing:2px;text-transform:uppercase;border-bottom:1px solid #2c2015;padding-bottom:2px;margin-top:5px;margin-bottom:2px}
-.pt:first-child{margin-top:0}
-.hpbg{height:7px;background:#1a0808;border:1px solid #380f0f;border-radius:2px;overflow:hidden}
-.hpf{height:100%;background:#aa2222;transition:width .15s}
-.sr{display:flex;justify-content:space-between;font-size:11px}
+/* ── LEFT PANEL (stats always visible, no tabs) ── */
+#left{width:210px;flex-shrink:0;background:#0d0b08;border-right:1px solid #2c2015;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:0}
+.sec{font-size:9px;color:#c89028;letter-spacing:2px;text-transform:uppercase;border-bottom:1px solid #2c2015;padding-bottom:3px;margin:10px 0 6px}
+.sec:first-child{margin-top:0}
+#hpbg{height:13px;background:#1a0808;border:1px solid #380f0f;border-radius:2px;overflow:hidden;position:relative;margin-bottom:8px}
+#hpbar{height:100%;background:#cc2222;transition:width .12s}
+#hptx{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;color:#fff}
+#hpbg.inv{animation:invFlash .4s infinite}
+.sr{display:flex;justify-content:space-between;align-items:baseline;padding:2px 0;font-size:12px}
 .sk{color:#786855}.sv{font-weight:bold}
-.eqs{background:#161209;border:1px solid #2c2015;border-radius:2px;padding:3px 5px;margin-bottom:2px}
-.eqsl{font-size:8px;color:#786855}.eqsi{font-size:9px;line-height:1.3}
-.cg2{display:grid;grid-template-columns:1fr 1fr;gap:3px}
+.badges{display:flex;gap:5px;margin-bottom:6px;flex-wrap:wrap}
+.badge{font-size:10px;padding:2px 7px;border:1px solid;border-radius:2px}
+#ainfo{font-size:10px;padding:4px 7px;background:#161209;border:1px solid #2c2015;border-radius:2px;margin-bottom:4px;display:none}
+.gbtn{width:100%;padding:5px;font-size:10px;font-family:Georgia,serif;border:1px solid;background:transparent;cursor:pointer;border-radius:2px;margin-bottom:3px;letter-spacing:1px;transition:background .12s}
+.gbtn:hover{filter:brightness(1.2)}
+.gbtn:disabled{opacity:.3;cursor:default}
+.eq-row{display:flex;gap:4px;margin-bottom:3px}
+.eq-slot{flex:1;background:#161209;border:1px solid #2c2015;border-radius:2px;padding:3px 6px;cursor:pointer;transition:border-color .12s;min-width:0}
+.eq-slot:hover{border-color:#5a3e10}
+.esl{font-size:9px;color:#786855}.esn{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cg{display:grid;grid-template-columns:1fr 1fr;gap:4px}
 .ci{display:flex;align-items:center;gap:4px}
-.cion{width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:bold;flex-shrink:0;border:1px solid}
-#cbadge{font-size:10px;padding:2px 7px;border:1px solid;border-radius:2px;margin-bottom:3px;display:none}
-#ainfo{font-size:9px;padding:4px 6px;background:#161209;border:1px solid #2c2015;border-radius:2px;display:none;margin-bottom:2px}
-.abtn{width:100%;padding:4px;font-size:9px;font-family:Georgia,serif;border:1px solid #c89028;background:#1a1208;color:#f0b030;cursor:pointer;margin-top:2px;letter-spacing:1px}
-.abtn:disabled{border-color:#2c2015;color:#2c2015;background:transparent;cursor:default}
-.pbtn{width:100%;padding:3px;font-size:9px;font-family:Georgia,serif;border:1px solid #ee88ee;background:#1a0820;color:#ee88ee;cursor:pointer;margin-top:2px;display:none;animation:pulse 2s infinite}
-.resetbtn{width:100%;padding:3px;font-size:9px;font-family:Georgia,serif;border:1px solid #333;background:transparent;color:#444;cursor:pointer;margin-top:4px}
-.resetbtn:hover{border-color:#666;color:#666}
+.cion{width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:bold;flex-shrink:0;border:1px solid}
+.cv{font-size:12px;font-weight:bold;color:#a89878}
+.rbtn{width:100%;padding:3px;font-size:10px;font-family:Georgia,serif;border:1px solid #333;background:transparent;color:#444;cursor:pointer;border-radius:2px;margin-top:6px}
+.rbtn:hover{border-color:#666;color:#666}
 
 /* ── CENTER ── */
 #center{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
-#mapbar{display:flex;align-items:center;gap:8px;padding:5px 10px;background:#0f0d09;border-bottom:1px solid #2c2015;flex-shrink:0}
-#mtbadge{font-size:10px;padding:2px 6px;background:#161209;border:1px solid #5a3e10;color:#c89028;font-weight:bold;white-space:nowrap}
-#mpbg{flex:1;height:5px;background:#161209;border:1px solid #2c2015;border-radius:1px;overflow:hidden}
+
+/* Map bar */
+#mapbar{display:flex;align-items:center;gap:8px;padding:5px 12px;background:#100e09;border-bottom:1px solid #2c2015;flex-shrink:0;height:36px}
+#mtbadge{font-size:11px;padding:2px 9px;background:#1a1208;border:1px solid #5a3e10;color:#c89028;font-weight:bold;white-space:nowrap;border-radius:2px}
+#mpbg{flex:1;height:7px;background:#161209;border:1px solid #2c2015;border-radius:2px;overflow:hidden}
 #mpf{height:100%;background:#c89028;transition:width .06s}
-#mktxt{font-size:10px;color:#786855;white-space:nowrap}
+#mktxt{font-size:11px;color:#786855;white-space:nowrap}
 
-/* Skill + Flask bar */
-#skillflask-bar{display:flex;align-items:center;gap:12px;padding:5px 10px;background:#0c0a07;border-bottom:1px solid #2c2015;flex-shrink:0}
-.bar-section{display:flex;align-items:center;gap:5px}
-.bar-label{font-size:8px;color:#5a3e10;letter-spacing:1px;text-transform:uppercase;white-space:nowrap}
+/* Skill / Flask bar */
+#sfbar{display:flex;align-items:center;gap:10px;padding:5px 12px;background:#0d0b08;border-bottom:1px solid #2c2015;flex-shrink:0;height:68px}
+.barlbl{font-size:9px;color:#5a3e10;letter-spacing:1px;white-space:nowrap}
+.skgem{width:52px;height:54px;background:#161209;border:2px solid #2c2015;border-radius:3px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;cursor:pointer;transition:border-color .12s;flex-shrink:0}
+.skgem.on{border-color:#c89028}
+.skgem:hover{border-color:#5a3e10}
+.gi{font-size:20px;line-height:1}
+.gn{font-size:7px;color:#786855;text-align:center;margin-top:2px;max-width:50px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gcd{position:absolute;bottom:0;left:0;height:3px;border-radius:0 0 1px 1px;transition:width .05s}
+.supgem{width:34px;height:34px;background:#0f0c07;border:1px solid #2c2015;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:13px;transition:border-color .12s}
+.supgem:hover{border-color:#5a3e10}
+.supgem.on{border-color:#9858d8}
+.flslot{width:32px;height:52px;background:#161209;border:1px solid #2c2015;border-radius:3px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;cursor:pointer;flex-shrink:0;transition:border-color .12s}
+.flslot.fhas{border-color:#2a4a1a}
+.flslot.fready{border-color:#44cc22}
+.fni{font-size:16px;line-height:1}
+.fnn{font-size:7px;color:#786855;text-align:center;margin-top:1px;max-width:30px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fcd{position:absolute;bottom:0;left:0;right:0;height:3px;background:#1a3a0a;border-radius:0 0 2px 2px}
+.fcdf{height:100%;background:#44cc22;transition:width .1s}
 
-/* Skill gem slot */
-.sk-gem{width:44px;height:44px;background:#161209;border:2px solid #2c2015;border-radius:3px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;cursor:pointer;transition:border-color .15s;flex-shrink:0}
-.sk-gem:hover{border-color:#5a3e10}
-.sk-gem.active{border-color:#c89028}
-.sk-gem .gico{font-size:15px;line-height:1}
-.sk-gem .gname{font-size:7px;color:#786855;text-align:center;line-height:1.1;margin-top:1px;max-width:42px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.sk-gem .gcd{position:absolute;bottom:0;left:0;height:3px;border-radius:0 0 1px 1px;transition:width .05s linear}
-.sk-gem.empty-gem{border-style:dashed;opacity:.4}
-/* Support gem slot */
-.sup-gem{width:28px;height:28px;background:#0f0c07;border:1px solid #2c2015;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;position:relative;font-size:11px;transition:border-color .15s}
-.sup-gem:hover{border-color:#5a3e10}
-.sup-gem.active{border-color:#9858d8}
-.sup-gem.empty-sup{opacity:.3;border-style:dashed}
+/* Buff strip */
+#bstrip{display:flex;gap:4px;padding:3px 12px;background:#0a0806;border-bottom:1px solid #1a1208;flex-shrink:0;min-height:22px;align-items:center;flex-wrap:wrap}
+.bpill{font-size:10px;padding:1px 7px;border-radius:10px;border:1px solid;white-space:nowrap}
 
-/* Flask slot */
-.fl-slot{width:28px;height:46px;background:#161209;border:1px solid #2c2015;border-radius:3px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;cursor:pointer;flex-shrink:0;transition:border-color .15s}
-.fl-slot.has-flask{border-color:#2a4a1a}
-.fl-slot.fl-active{border-color:#44aa22;animation:flaskReady .8s infinite}
-.fl-slot .fln{font-size:13px;line-height:1}
-.fl-slot .flcd{position:absolute;bottom:0;left:0;right:0;height:3px;background:#1a3a0a;border-radius:0 0 2px 2px}
-.fl-slot .flcdf{height:100%;background:#44aa22;transition:width .1s linear}
-.fl-slot .flname{font-size:7px;color:#786855;text-align:center;line-height:1.1;margin-top:1px;max-width:26px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.fl-slot.empty-fl{border-style:dashed;opacity:.3}
-
-/* Active buff strip */
-#buff-strip{display:flex;gap:4px;padding:3px 10px;background:#0a0804;border-bottom:1px solid #1a1208;flex-shrink:0;min-height:20px;align-items:center;flex-wrap:wrap}
-.buff-pill{font-size:9px;padding:1px 6px;border-radius:10px;border:1px solid;white-space:nowrap}
-
-#ebox{margin:6px 10px 0;padding:8px 10px;border:1px solid #2c2015;background:#0f0d09;flex-shrink:0;border-radius:2px}
+/* Enemy box */
+#ebox{margin:8px 12px 0;padding:8px 12px;border:1px solid #2c2015;background:#100e09;flex-shrink:0;border-radius:2px}
 #ebox.boss{animation:bossGlow 1.2s infinite}
-#ename{font-size:13px;font-weight:bold}
-.emods{display:flex;gap:3px;margin-top:2px;flex-wrap:wrap}
-.emod{font-size:8px;padding:1px 4px;background:rgba(180,70,10,.2);color:#ff8844;border:1px solid #773310;border-radius:2px;font-style:italic}
-#ehpbg{height:7px;background:#1a0808;border:1px solid #2c2015;border-radius:1px;overflow:hidden;margin-top:5px;position:relative}
-#ehpf{height:100%;background:#aa1111;transition:width .08s}
-#ehpt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:bold}
-#log{flex:1;margin:6px 10px 8px;background:#0f0d09;border:1px solid #2c2015;overflow-y:auto;padding:4px 6px;border-radius:2px;min-height:0}
-.ll{font-size:11px;line-height:1.5}.ll.area{border-top:1px solid #2c2015;padding-top:2px;margin-top:2px;font-style:italic}
+#ename{font-size:16px;font-weight:bold}
+.emods{display:flex;gap:3px;margin-top:3px;flex-wrap:wrap}
+.emod{font-size:9px;padding:1px 5px;background:rgba(180,70,10,.2);color:#ff8844;border:1px solid #773310;border-radius:2px;font-style:italic}
+.emod.b{background:rgba(200,30,0,.2);color:#ff4422;border-color:#aa2200}
+#ehpbg{height:9px;background:#1a0808;border:1px solid #2c2015;border-radius:2px;overflow:hidden;margin-top:7px;position:relative}
+#ehpf{height:100%;background:#cc1111;transition:width .07s}
+#ehpt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:bold}
 
-/* ── RIGHT ── */
-#right{width:230px;flex-shrink:0;background:#0c0a07;border-left:1px solid #2c2015;display:flex;flex-direction:column;overflow:hidden}
-#tabs{display:flex;border-bottom:1px solid #2c2015;flex-shrink:0;flex-wrap:wrap}
-.tb{flex:1;min-width:0;padding:5px 0;font-size:8px;font-family:Georgia,serif;letter-spacing:.5px;border:none;cursor:pointer;background:transparent;color:#786855;border-bottom:2px solid transparent;transition:all .1s}
-.tb.active{background:#0f0d09;color:#f0b030;border-bottom-color:#c89028}
-#tcon{flex:1;overflow-y:auto;padding:8px;min-height:0}
+/* Log */
+#log{flex:1;margin:6px 12px 8px;background:#100e09;border:1px solid #2c2015;overflow-y:auto;padding:4px 8px;border-radius:2px;min-height:0}
+.ll{font-size:11px;line-height:1.55}
+.ll.ar{border-top:1px solid #2c2015;padding-top:2px;margin-top:2px;font-style:italic}
+.ll.bd{font-size:13px;font-weight:bold}
 
-/* Passive nodes */
-.pgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;margin-bottom:7px}
-.pn{aspect-ratio:1;border:2px solid #2c2015;background:#161209;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:bold;color:#2c2015;cursor:default;transition:border-color .1s,background .1s;position:relative;font-family:Georgia,serif}
-.pn.sm{border-radius:50%}.pn.no{border-radius:18%}.pn.ks{border-radius:3px}
+/* ── RIGHT PANEL (5 tabs) ── */
+#right{width:268px;flex-shrink:0;background:#0d0b08;border-left:1px solid #2c2015;display:flex;flex-direction:column;overflow:hidden}
+#tabs{display:flex;border-bottom:1px solid #2c2015;flex-shrink:0}
+.tb{flex:1;padding:7px 2px;font-size:9px;font-family:Georgia,serif;letter-spacing:.5px;border:none;cursor:pointer;background:transparent;color:#786855;border-bottom:2px solid transparent;transition:all .1s}
+.tb.act{background:#100e09;color:#f0b030;border-bottom-color:#c89028}
+#tcon{flex:1;overflow-y:auto;padding:10px;min-height:0}
+
+/* Passive tree */
+.psec{margin-bottom:12px}
+.psh{font-size:9px;color:#c89028;letter-spacing:1px;border-bottom:1px solid #2c2015;padding-bottom:2px;margin-bottom:5px}
+.pgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;margin-bottom:2px}
+.pn{aspect-ratio:1;border:2px solid #2c2015;background:#161209;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:bold;color:#2c2015;cursor:default;position:relative;font-family:Georgia,serif;transition:all .12s}
+.pn.sm{border-radius:50%}.pn.no{border-radius:16%}.pn.ks{border-radius:3px}
 .pn.av{border-color:#5a3e10;color:#5a3e10;cursor:pointer}
+.pn.av:hover{border-color:#c89028;background:#1a1208}
 .pn.al{border-color:#c89028;background:#1e1508;color:#f0b030}
-.ptt{display:none;position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:#100c06;border:1px solid #4a3418;padding:6px 8px;width:150px;z-index:50;font-size:10px;color:#e8dac5;border-radius:2px;white-space:pre-line;pointer-events:none}
+.ptt{display:none;position:absolute;bottom:calc(100% + 5px);left:50%;transform:translateX(-50%);background:#0e0c08;border:1px solid #4a3418;padding:7px 9px;width:160px;z-index:100;font-size:10px;color:#e8dac5;border-radius:2px;white-space:pre-line;pointer-events:none;line-height:1.5}
 .ptt b{color:#c89028;display:block;margin-bottom:2px;font-size:9px}
 .pn:hover .ptt{display:block}
 
-/* Upgrade */
-.uc{background:#161209;border:1px solid #2c2015;border-radius:2px;padding:5px 7px;margin-bottom:4px}
+/* Upgrades */
+.uc{background:#161209;border:1px solid #2c2015;border-radius:2px;padding:6px 8px;margin-bottom:5px}
 .uc.can{border-color:#5a3e10}
-.uh{display:flex;align-items:center;gap:4px;margin-bottom:2px}
-.uico{font-size:13px}.unm{font-size:10px;font-weight:bold;flex:1}.ulv{font-size:8px;color:#5a3e10}
-.ud{font-size:9px;color:#786855;font-style:italic;margin-bottom:2px}
-.upb{height:3px;background:#0a0806;border:1px solid #2c2015;overflow:hidden;margin-bottom:3px}
+.uh{display:flex;align-items:center;gap:5px;margin-bottom:2px}
+.uico{font-size:14px;flex-shrink:0}.unm{font-size:11px;font-weight:bold;flex:1}.ulv{font-size:9px;color:#5a3e10}
+.ud{font-size:10px;color:#786855;font-style:italic;margin-bottom:2px}
+.upb{height:3px;background:#0a0806;border:1px solid #2c2015;overflow:hidden;margin-bottom:3px;border-radius:1px}
 .upbf{height:100%;background:#c89028}
-.ub{width:100%;padding:2px;font-size:9px;font-family:Georgia,serif;border:1px solid #2c2015;background:transparent;color:#2c2015;cursor:default;transition:all .1s}
+.ub{width:100%;padding:3px;font-size:10px;font-family:Georgia,serif;border:1px solid #2c2015;background:transparent;color:#2c2015;cursor:default;border-radius:2px;transition:all .1s}
 .ub.buy{border-color:#c89028;color:#f0b030;cursor:pointer;background:#1a1208}
-.ub.max{border-color:#5a3e10;color:#5a3e10}
+.ub.buy:hover{background:#201808}.ub.mx{border-color:#5a3e10;color:#5a3e10}
 
-/* Skills tab */
-.gem-picker{background:#161209;border:1px solid #2c2015;border-radius:3px;padding:7px;margin-bottom:5px;cursor:pointer;transition:border-color .12s}
-.gem-picker:hover{border-color:#5a3e10}
-.gem-picker.selected{border-color:#c89028;background:#1a1508}
-.gp-head{display:flex;align-items:center;gap:6px;margin-bottom:3px}
-.gp-ico{font-size:16px}.gp-name{font-size:10px;font-weight:bold;color:#f0b030;flex:1}
-.gp-type{font-size:9px;padding:1px 5px;border-radius:2px;font-style:italic}
-.gp-desc{font-size:9px;color:#a89878;line-height:1.4}
-.gp-stats{font-size:9px;color:#4080d0;margin-top:2px}
-.sup-picker{background:#0f0c07;border:1px solid #2c2015;border-radius:3px;padding:6px;margin-bottom:4px;cursor:pointer;transition:border-color .12s}
-.sup-picker:hover{border-color:#9858d8}
-.sup-picker.selected{border-color:#9858d8;background:#140a1e}
-.sp-head{display:flex;align-items:center;gap:5px}
-.sp-ico{font-size:13px}.sp-name{font-size:10px;font-weight:bold;color:#9858d8;flex:1}
-.sp-desc{font-size:9px;color:#a89878;margin-top:2px;line-height:1.4}
+/* Gems tab */
+.gc{background:#161209;border:1px solid #2c2015;border-radius:2px;padding:7px 9px;margin-bottom:5px;cursor:pointer;transition:border-color .12s}
+.gc:hover{border-color:#5a3e10}.gc.sel{border-color:#c89028;background:#1a1508}
+.gch{display:flex;align-items:center;gap:6px;margin-bottom:3px}
+.gcico{font-size:18px;flex-shrink:0}.gcnm{font-size:12px;font-weight:bold;flex:1}
+.gctyp{font-size:9px;padding:1px 5px;border-radius:2px;font-style:italic}
+.gcd2{font-size:10px;color:#a89878;line-height:1.4}
+.gcst{font-size:10px;color:#4080d0;margin-top:2px}
+.sc{background:#0f0c07;border:1px solid #2c2015;border-radius:2px;padding:6px 8px;margin-bottom:4px;cursor:pointer;transition:border-color .12s}
+.sc:hover{border-color:#9858d8}.sc.sel{border-color:#9858d8;background:#140a1e}
+.sch{display:flex;align-items:center;gap:5px}
+.scico{font-size:14px;flex-shrink:0}.scnm{font-size:11px;font-weight:bold;color:#9858d8;flex:1}
+.scd{font-size:10px;color:#a89878;margin-top:2px;line-height:1.4}
 
 /* Craft tab */
-.craft-section{margin-bottom:10px}
-.craft-item-row{display:flex;align-items:center;gap:6px;background:#161209;border:1px solid #2c2015;border-radius:3px;padding:5px 7px;margin-bottom:3px;cursor:pointer;transition:border-color .12s}
-.craft-item-row:hover{border-color:#5a3e10}
-.craft-item-row.selected{border-color:#c89028;background:#1a1508}
-.ci-name{font-size:10px;flex:1}.ci-slot{font-size:9px;color:#786855}
-.craft-enhance-btn{width:100%;padding:6px;font-size:10px;font-family:Georgia,serif;border:1px solid #2c2015;background:transparent;color:#2c2015;cursor:default;border-radius:2px;margin-bottom:3px;transition:all .12s;text-align:left}
-.craft-enhance-btn.can{border-color:#c89028;color:#f0b030;cursor:pointer;background:#1a1208}
-.craft-enhance-btn.can:hover{background:#2a2008}
-.craft-result-preview{background:#0f0d09;border:1px solid #3a5a10;border-radius:3px;padding:7px;margin-top:6px;font-size:10px}
+.cis{background:#161209;border:1px solid #2c2015;border-radius:2px;padding:6px 8px;margin-bottom:3px;cursor:pointer;transition:border-color .12s}
+.cis:hover{border-color:#5a3e10}.cis.sel{border-color:#c89028;background:#1a1508}
+.cbtn{width:100%;padding:5px 8px;font-size:10px;font-family:Georgia,serif;border:1px solid #2c2015;background:transparent;color:#2c2015;cursor:default;border-radius:2px;margin-bottom:3px;text-align:left;transition:all .12s}
+.cbtn.can{border-color:#c89028;color:#f0b030;cursor:pointer;background:#1a1208}
+.cbtn.can:hover{background:#201808}
+.cprev{background:#100e09;border:1px solid #2c2015;border-radius:2px;padding:7px 9px;margin-top:5px}
 
-/* Inventory */
-.iv{background:#161209;border:1px solid #2c2015;border-radius:2px;padding:5px 6px;margin-bottom:3px;cursor:pointer}
-.iv:hover{border-color:#5a3e10}
+/* Loot tab */
+.inv-bar{display:flex;gap:4px;margin-bottom:7px;flex-wrap:wrap;align-items:center}
+.fp{font-size:9px;padding:2px 7px;border:1px solid #2c2015;background:transparent;color:#786855;cursor:pointer;border-radius:10px;font-family:Georgia,serif;transition:all .12s}
+.fp:hover,.fp.on{border-color:#c89028;color:#f0b030;background:#1a1208}
+.sab{font-size:9px;padding:2px 7px;border:1px solid #cc7722;background:transparent;color:#cc7722;cursor:pointer;border-radius:2px;margin-left:auto;font-family:Georgia,serif}
+.sab:hover{background:#2a1500}
+.inv-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.iv{background:#161209;border:1px solid #2c2015;border-radius:2px;padding:6px 8px;position:relative}
+.ivn{font-size:11px;font-weight:bold;margin-bottom:1px}
+.ivs{font-size:9px;color:#786855}
+.ivm{font-size:9px;color:#4080d0;margin-top:3px;line-height:1.45}
+.ivc{font-size:9px;margin-top:2px}
+.iva{display:flex;gap:4px;margin-top:5px}
+.ivb{font-size:9px;padding:2px 6px;border-radius:2px;border:1px solid;background:transparent;cursor:pointer;font-family:Georgia,serif;transition:all .12s}
+.ivb.eq{border-color:#c89028;color:#f0b030}.ivb.eq:hover{background:#1a1208}
+.ivb.sl{border-color:#cc5522;color:#cc7744}.ivb.sl:hover{background:#1a0800}
 
 /* Overlay */
-#overlay{display:none;position:absolute;inset:0;background:rgba(0,0,0,.9);z-index:100;align-items:flex-start;justify-content:center;padding-top:20px;overflow-y:auto}
-#overlay.show{display:flex}
-.obox{background:#120e06;border:2px solid #5a3e10;padding:20px;max-width:620px;width:95%;border-radius:3px;margin-bottom:20px}
-.obox h2{font-size:14px;color:#f0b030;letter-spacing:2px;margin-bottom:4px;text-align:center}
-.osub{font-size:11px;color:#786855;margin-bottom:12px;text-align:center}
-.obtnrow{display:flex;gap:8px;margin-top:12px}
-.opri{flex:1;padding:8px;font-size:12px;font-weight:bold;letter-spacing:2px;border:2px solid #c89028;color:#f0b030;background:#1a1208;cursor:pointer;font-family:Georgia,serif}
-.osec{padding:8px 12px;background:transparent;border:1px solid #2c2015;color:#786855;cursor:pointer;font-family:Georgia,serif;font-size:11px}
+#ov{display:none;position:absolute;inset:0;background:rgba(0,0,0,.88);z-index:100;align-items:flex-start;justify-content:center;padding-top:18px;overflow-y:auto}
+#ov.show{display:flex}
+.obox{background:#140e06;border:2px solid #5a3e10;padding:20px;max-width:640px;width:95%;border-radius:3px;margin-bottom:20px}
+.obox h2{font-size:15px;color:#f0b030;letter-spacing:2px;margin-bottom:5px;text-align:center}
+.osub{font-size:12px;color:#786855;margin-bottom:12px;text-align:center;line-height:1.5}
+.obr{display:flex;gap:8px;margin-top:12px}
+.opri{flex:1;padding:8px;font-size:13px;font-weight:bold;letter-spacing:2px;border:2px solid #c89028;color:#f0b030;background:#1a1208;cursor:pointer;font-family:Georgia,serif;border-radius:2px}
+.opri:hover{background:#201808}
+.osec{padding:8px 12px;background:transparent;border:1px solid #2c2015;color:#786855;cursor:pointer;font-family:Georgia,serif;font-size:11px;border-radius:2px}
 .cg6{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .ccard{background:#100c06;border:1px solid #3a2810;border-radius:3px;padding:10px 8px;cursor:pointer;text-align:center;transition:border-color .15s}
 .ccard:hover{border-color:#c89028}
-.ccico{font-size:20px;margin-bottom:4px}.ccnm{font-size:11px;font-weight:bold;letter-spacing:1px;margin-bottom:2px}.cctg{font-size:9px;color:#786855;font-style:italic;margin-bottom:4px}.ccbn{font-size:9px;color:#a89878;line-height:1.4}
+.ccico{font-size:22px;margin-bottom:4px}.ccnm{font-size:12px;font-weight:bold;letter-spacing:1px;margin-bottom:2px}.cctg{font-size:10px;color:#786855;font-style:italic;margin-bottom:4px}.ccbn{font-size:10px;color:#a89878;line-height:1.5}
 .ag3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
-.acard{background:#161209;border:1px solid #3a2810;border-radius:3px;padding:10px 8px;cursor:pointer;text-align:center;transition:border-color .15s}
+.acard{background:#161209;border:1px solid #3a2810;border-radius:3px;padding:9px 8px;cursor:pointer;text-align:center;transition:border-color .15s}
 .acard:hover{border-color:#c89028}
 .ang{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
 .anc{background:#161209;border:1px solid #2c2015;border-radius:3px;padding:8px;cursor:pointer;transition:border-color .15s}
-.anc:hover:not(.taken):not(.locked){border-color:#c89028}
-.anc.taken{border-color:#c89028;background:#1e1508;cursor:default}
-.anc.locked{opacity:.4;cursor:default}
-.anname{font-size:10px;font-weight:bold;margin-bottom:2px}.antype{font-size:9px;color:#786855;font-style:italic;margin-bottom:3px}.andesc{font-size:9px;color:#a89878;line-height:1.4;white-space:pre-line}
+.anc:hover:not(.tk):not(.lk){border-color:#c89028}
+.anc.tk{border-color:#c89028;background:#1e1508;cursor:default}
+.anc.lk{opacity:.35;cursor:default}
+.ann{font-size:11px;font-weight:bold;margin-bottom:2px}.ant{font-size:10px;color:#786855;font-style:italic;margin-bottom:3px}.and{font-size:10px;color:#a89878;line-height:1.4;white-space:pre-line}
 .pug{background:#161209;border:1px solid #2c2015;border-radius:2px;padding:6px 8px;display:flex;align-items:center;gap:8px;margin-bottom:4px}
-.fdmg{position:absolute;pointer-events:none;z-index:200;font-size:12px;font-weight:bold;animation:floatUp .9s ease forwards;transform:translateX(-50%)}
-#notifarea{position:absolute;top:48px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:4px;align-items:center;pointer-events:none;z-index:300}
-.notif{background:rgba(6,4,2,.97);padding:4px 16px;font-size:11px;font-weight:bold;letter-spacing:2px;animation:popIn .2s ease;border-radius:2px}
+.fdmg{position:absolute;pointer-events:none;z-index:200;font-size:13px;font-weight:bold;animation:floatUp .9s ease forwards;transform:translateX(-50%)}
+#na{position:absolute;top:48px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:4px;align-items:center;pointer-events:none;z-index:300}
+.notif{background:rgba(6,4,2,.97);padding:4px 16px;font-size:11px;font-weight:bold;letter-spacing:2px;animation:pulse .2s ease;border-radius:2px}
 </style>
 </head>
 <body>
-<div id="root">
+<div id="root" style="position:relative">
+
 <div id="hdr">
-  <h1>PATH OF IDLE</h1>
+  <h1>⚔ PATH OF IDLE</h1>
   <div class="hb"><span class="hl">Lv</span><span class="hv" id="hlv">1</span></div>
   <div class="hb"><span class="hl">DPS</span><span class="hv" id="hdps">0/s</span></div>
   <div class="hb"><span class="hl">Kills</span><span class="hv" id="hkills">0</span></div>
   <div class="hb"><span class="hl">Prestige</span><span class="hv" id="hpres" style="color:#ee88ee">0</span></div>
-  <div id="xpw"><div id="xpbg"><div id="xpf" style="width:0%"></div></div><div id="xpt">0/100</div></div>
+  <div id="xpw"><div id="xpbg"><div id="xpf" style="width:0%"></div></div><div id="xpt">0 / 100 EXP</div></div>
   <div class="hb"><span class="hl" id="harea">The Coast T1</span></div>
   <div class="sdot" id="sdot"></div>
 </div>
+
 <div id="main">
-  <div id="left">
-    <div id="cbadge"></div>
-    <div class="pt">Character</div>
-    <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:2px"><span class="sk">Life</span><span id="hptxt" style="color:#cc3535;font-weight:bold">200/200</span></div>
-    <div class="hpbg"><div class="hpf" id="hpbar" style="width:100%"></div></div>
-    <div style="margin-top:4px;display:flex;flex-direction:column;gap:2px">
-      <div class="sr"><span class="sk">Phys</span><span class="sv" id="sdmg">5-12</span></div>
-      <div class="sr"><span class="sk">Skill DPS</span><span class="sv" id="sdps" style="color:#f0b030">0/s</span></div>
-      <div class="sr"><span class="sk">Atk Spd</span><span class="sv" id="saspd">1.20/s</span></div>
-      <div class="sr"><span class="sk">Crit</span><span class="sv" id="scrit">5%/150%</span></div>
-      <div class="sr"><span class="sk">Arm</span><span class="sv" id="sarm">50</span></div>
-      <div class="sr"><span class="sk">Curr</span><span class="sv" id="scurr" style="color:#a89878">0</span></div>
-      <div class="sr"><span class="sk">×Mult</span><span class="sv" id="scmult" style="color:#a89878">×1.0</span></div>
-    </div>
-    <div id="ainfo"><div style="color:#786855;font-size:8px">Ascendancy</div><div id="aname" style="font-weight:bold;margin-top:1px"></div><div id="ataken" style="color:#786855;margin-top:1px;font-size:9px"></div></div>
-    <button class="abtn" id="ascbtn" onclick="openOverlay('asc')" disabled>ASCENDANCY</button>
-    <button class="pbtn" id="pbtn" onclick="openOverlay('prestige')">PRESTIGE (<span id="hpp">0</span>pt)</button>
-    <div class="pt">Equipment</div>
-    <div id="eqslots"></div>
-    <div class="pt">Currency</div>
-    <div class="cg2" id="currgrid"></div>
-    <button class="resetbtn" onclick="confirmReset()">Reset Save</button>
-  </div>
 
-  <div id="center">
-    <div id="mapbar">
-      <div id="mtbadge">T1 MAP</div>
-      <div id="mpbg"><div id="mpf" style="width:0%"></div></div>
-      <div id="mktxt"><span id="mkc">0</span>/<span id="mkt">20</span> kills</div>
-    </div>
-
-    <!-- Skill + Flask bar -->
-    <div id="skillflask-bar">
-      <div class="bar-section">
-        <span class="bar-label">Skill</span>
-        <div id="main-gem-slot"></div>
-        <span class="bar-label" style="color:#9858d8">+</span>
-        <div id="sup-gem-slots" style="display:flex;gap:3px"></div>
-      </div>
-      <div style="flex:1"></div>
-      <div class="bar-section">
-        <span class="bar-label">Flasks</span>
-        <div id="flask-slots" style="display:flex;gap:4px"></div>
-      </div>
-    </div>
-
-    <!-- Active buff strip -->
-    <div id="buff-strip"></div>
-
-    <div id="ebox">
-      <div style="display:flex;align-items:baseline;gap:8px"><span id="ename" style="color:#c0c0c0">Rhoa</span><div class="emods" id="emods"></div></div>
-      <div id="ehpbg"><div id="ehpf" style="width:100%"></div><div id="ehpt"></div></div>
-    </div>
-    <div id="log"></div>
-  </div>
-
-  <div id="right">
-    <div id="tabs">
-      <button class="tb active" onclick="setTab('passive')">PASS</button>
-      <button class="tb" onclick="setTab('upgrade')">UPG</button>
-      <button class="tb" onclick="setTab('skills')">GEMS</button>
-      <button class="tb" onclick="setTab('craft')">CRAFT</button>
-      <button class="tb" onclick="setTab('inventory')">LOOT</button>
-    </div>
-    <div id="tcon"></div>
-  </div>
-</div>
-<div id="overlay" onclick="overlayBgClick(event)"><div class="obox" id="obox"></div></div>
-<div id="floatarea" style="position:absolute;inset:0;pointer-events:none;z-index:200;overflow:hidden"></div>
-<div id="notifarea"></div>
+<!-- ── LEFT ── -->
+<div id="left">
+  <div class="sec">Character</div>
+  <div id="hpbg"><div id="hpbar" style="width:100%"></div><div id="hptx"></div></div>
+  <div class="sr"><span class="sk">Phys</span><span class="sv" id="sdmg">5–12</span></div>
+  <div class="sr"><span class="sk">Skill DPS</span><span class="sv" id="sdps" style="color:#f0b030">0/s</span></div>
+  <div class="sr"><span class="sk">Atk Speed</span><span class="sv" id="saspd">1.20/s</span></div>
+  <div class="sr"><span class="sk">Crit</span><span class="sv" id="scrit">5% / 150%</span></div>
+  <div class="sr"><span class="sk">Armour</span><span class="sv" id="sarm">50</span></div>
+  <div class="sr"><span class="sk">Resistance</span><span class="sv" id="sres">0%</span></div>
+  <div class="sr"><span class="sk">Life Leech</span><span class="sv" id="slch">0%</span></div>
+  <div class="sr"><span class="sk">Currency</span><span class="sv" id="scurr" style="color:#a89878">0</span></div>
+  <div class="sr"><span class="sk">Drop Mult</span><span class="sv" id="scmul" style="color:#a89878">×1.0</span></div>
+  <div class="badges" id="badges"></div>
+  <div id="ainfo"><div style="color:#786855;font-size:9px">Ascendancy</div><div id="an" style="font-weight:bold;margin-top:1px"></div><div id="atk" style="color:#786855;font-size:10px;margin-top:1px"></div></div>
+  <button class="gbtn" id="ascbtn" style="border-color:#c89028;color:#f0b030" onclick="openOv('asc')" disabled>ASCENDANCY</button>
+  <button class="gbtn" id="pbtn" style="border-color:#ee88ee;color:#ee88ee;display:none;animation:pulse 2s infinite" onclick="openOv('prestige')">PRESTIGE (<span id="hpp">0</span>pt)</button>
+  <div class="sec">Equipment</div>
+  <div id="eqslots"></div>
+  <div class="sec">Currency</div>
+  <div class="cg" id="currgrid"></div>
+  <button class="rbtn" onclick="confirmReset()">Reset Save</button>
 </div>
 
+<!-- ── CENTER ── -->
+<div id="center">
+  <div id="mapbar">
+    <div id="mtbadge">T1 MAP</div>
+    <div id="mpbg"><div id="mpf" style="width:0%"></div></div>
+    <div id="mktxt"><span id="mkc">0</span> / <span id="mkt">20</span> kills</div>
+  </div>
+  <div id="sfbar">
+    <div style="display:flex;align-items:center;gap:5px">
+      <span class="barlbl">SKILL</span>
+      <div id="mgs"></div>
+      <span class="barlbl" style="color:#9858d8;margin:0 2px">+</span>
+      <div id="sgs" style="display:flex;gap:4px"></div>
+    </div>
+    <div style="flex:1"></div>
+    <div style="display:flex;align-items:center;gap:5px">
+      <span class="barlbl">FLASKS</span>
+      <div id="fls" style="display:flex;gap:4px"></div>
+    </div>
+  </div>
+  <div id="bstrip"></div>
+  <div id="ebox">
+    <div style="display:flex;align-items:baseline;gap:8px">
+      <span id="ename" style="color:#c0c0c0">Rhoa</span>
+      <div class="emods" id="emods"></div>
+    </div>
+    <div id="ehpbg"><div id="ehpf" style="width:100%"></div><div id="ehpt"></div></div>
+  </div>
+  <div id="log"></div>
+</div>
+
+<!-- ── RIGHT ── -->
+<div id="right">
+  <div id="tabs">
+    <button class="tb act" onclick="setTab('pass')">PASS</button>
+    <button class="tb" onclick="setTab('upg')">UPG</button>
+    <button class="tb" onclick="setTab('gems')">GEMS</button>
+    <button class="tb" onclick="setTab('craft')">CRAFT</button>
+    <button class="tb" onclick="setTab('loot')">LOOT</button>
+  </div>
+  <div id="tcon"></div>
+</div>
+
+</div><!-- #main -->
+
+<div id="ov" onclick="ovBgClick(event)"><div class="obox" id="obox"></div></div>
+<div id="fa" style="position:absolute;inset:0;pointer-events:none;z-index:200;overflow:hidden"></div>
+<div id="na"></div>
+
+</div><!-- #root -->
 <script>
-// ── FORMAT ─────────────────────────────────────────────────────
+// ── FORMAT ──────────────────────────────────────────────────────
 const SFX=["","K","M","B","T","Qa","Qi","Sx","Sp","Oc","No","Dc","UDc"];
 function fmt(n){if(!isFinite(n)||n==null)return"0";if(n<0)return"-"+fmt(-n);if(n<1000)return Math.floor(n)+"";let i=0;while(n>=1000&&i<SFX.length-1){n/=1000;i++;}return(n>=100?Math.floor(n):n>=10?n.toFixed(1):n.toFixed(2))+SFX[i];}
 
 // ── SAVE ────────────────────────────────────────────────────────
-const SAVE_KEY="poe_idle_v6";
-function setSdot(st){const d=document.getElementById("sdot");if(d)d.className="sdot"+(st==="ok"?" ok":st==="saving"?" saving":"");}
-let saveTimer=null;
-function saveGame(){if(!gs)return;setSdot("saving");try{localStorage.setItem(SAVE_KEY,JSON.stringify({...gs,enemy:null}));setSdot("ok");}catch(e){setSdot("");}}
-function sched(){clearTimeout(saveTimer);saveTimer=setTimeout(saveGame,3000);}
-function loadGame(){try{const r=localStorage.getItem(SAVE_KEY);if(!r)return null;return JSON.parse(r);}catch(e){return null;}}
-function confirmReset(){if(confirm("Reset ALL progress? Cannot be undone.")){localStorage.removeItem(SAVE_KEY);location.reload();}}
+const SK="poi_v8";
+function ssv(st){const d=document.getElementById("sdot");if(d)d.className="sdot"+(st==="ok"?" ok":st==="sv"?" sv":"");}
+let svT=null;
+function save(){if(!gs)return;ssv("sv");try{localStorage.setItem(SK,JSON.stringify({...gs,enemy:null}));ssv("ok");}catch(e){ssv("");}}
+function sched(){clearTimeout(svT);svT=setTimeout(save,3000);}
+function load(){try{const r=localStorage.getItem(SK);return r?JSON.parse(r):null;}catch(e){return null;}}
+function confirmReset(){if(confirm("Reset ALL progress?")){localStorage.removeItem(SK);location.reload();}}
 
-// ── SKILL GEM DATA ──────────────────────────────────────────────
-// Main skills: each has a damage multiplier and base cooldown
-const MAIN_GEMS = [
-  {id:"g_cleave",    name:"Cleave",          ico:"⚔",  type:"Attack", cd:800,  dmgM:1.3,  desc:"Broad swing",          color:"#cc4422", unlockLv:1 },
-  {id:"g_heavy",     name:"Heavy Strike",    ico:"🔨",  type:"Attack", cd:1600, dmgM:2.4,  desc:"Crushing blow",        color:"#cc5522", unlockLv:3 },
-  {id:"g_double",    name:"Double Strike",   ico:"🗡",  type:"Attack", cd:700,  dmgM:0.95, desc:"Hits twice",           color:"#cc3322", unlockLv:5, hits:2 },
-  {id:"g_whirl",     name:"Whirling Blades", ico:"🌀",  type:"Attack", cd:1200, dmgM:1.1,  desc:"Spinning attack",      color:"#4488cc", unlockLv:8 },
-  {id:"g_frenzy",    name:"Frenzy",          ico:"⚡",  type:"Attack", cd:500,  dmgM:0.75, desc:"Rapid chain strikes",  color:"#cc8822", unlockLv:10},
-  {id:"g_viper",     name:"Viper Strike",    ico:"🐍",  type:"Attack", cd:1000, dmgM:1.15, desc:"Venomous strike",      color:"#44aa44", unlockLv:14},
-  {id:"g_fireball",  name:"Fireball",        ico:"🔥",  type:"Spell",  cd:1100, dmgM:1.5,  desc:"Explosive fireball",   color:"#dd4411", unlockLv:6 },
-  {id:"g_glacial",   name:"Glacial Cascade", ico:"❄",   type:"Spell",  cd:1400, dmgM:1.9,  desc:"Ice pillars erupt",    color:"#4488dd", unlockLv:12},
-  {id:"g_arc",       name:"Arc",             ico:"🌩",  type:"Spell",  cd:900,  dmgM:1.2,  desc:"Chaining lightning",   color:"#ddcc22", unlockLv:9 },
-  {id:"g_ice_nova",  name:"Ice Nova",        ico:"🌨",  type:"Spell",  cd:1300, dmgM:1.7,  desc:"Frost wave bursts",    color:"#88ccff", unlockLv:16},
-  {id:"g_cyclone",   name:"Cyclone",         ico:"🌪",  type:"Attack", cd:600,  dmgM:0.85, desc:"Perpetual spinning",   color:"#cc6622", unlockLv:18},
-  {id:"g_blade",     name:"Blade Vortex",    ico:"🔪",  type:"Spell",  cd:800,  dmgM:1.1,  desc:"Swirling blades",      color:"#cc44aa", unlockLv:20},
+// ── GEMS ────────────────────────────────────────────────────────
+const MG=[
+  {id:"gc",name:"Cleave",       ico:"⚔",type:"Attack",cd:800, dm:1.3, desc:"Broad swing",        col:"#cc4422",lv:1},
+  {id:"gh",name:"Heavy Strike", ico:"🔨",type:"Attack",cd:1600,dm:2.4, desc:"Crushing blow",      col:"#cc5522",lv:3},
+  {id:"gd",name:"Double Strike",ico:"🗡",type:"Attack",cd:700, dm:0.95,desc:"Hits twice",          col:"#cc3322",lv:5,hits:2},
+  {id:"gf",name:"Frenzy",       ico:"⚡",type:"Attack",cd:500, dm:0.75,desc:"Rapid strikes",       col:"#cc8822",lv:10},
+  {id:"gv",name:"Viper Strike", ico:"🐍",type:"Attack",cd:1000,dm:1.15,desc:"Venomous hit",        col:"#44aa44",lv:14},
+  {id:"gy",name:"Cyclone",      ico:"🌪",type:"Attack",cd:600, dm:0.85,desc:"Perpetual spin",      col:"#cc6622",lv:18},
+  {id:"gr",name:"Fireball",     ico:"🔥",type:"Spell", cd:1100,dm:1.5, desc:"Explosive fireball",  col:"#dd4411",lv:6},
+  {id:"ga",name:"Arc",          ico:"🌩",type:"Spell", cd:900, dm:1.2, desc:"Chaining lightning",  col:"#ddcc22",lv:9},
+  {id:"gi",name:"Glacial Cascade",ico:"❄",type:"Spell",cd:1400,dm:1.9,desc:"Ice pillars erupt",   col:"#4488dd",lv:12},
+  {id:"gn",name:"Ice Nova",     ico:"🌨",type:"Spell", cd:1300,dm:1.7, desc:"Frost wave",          col:"#88ccff",lv:16},
+  {id:"gb",name:"Blade Vortex", ico:"🔪",type:"Spell", cd:800, dm:1.1, desc:"Swirling blades",     col:"#cc44aa",lv:20},
+  {id:"gw",name:"Whirling Blades",ico:"🌀",type:"Attack",cd:1200,dm:1.1,desc:"Spinning attack",   col:"#4488cc",lv:8},
+];
+const SG=[
+  {id:"sm",name:"Multistrike",    ico:"✦",col:"#9858d8",desc:"+1 extra hit, ×0.7 each",   mod:{eh:1,dm:0.7},  lv:5},
+  {id:"se",name:"Spell Echo",     ico:"↩",col:"#5888d8",desc:"+1 repeat, ×0.8 each",      mod:{eh:1,dm:0.8},  lv:8},
+  {id:"sf",name:"Faster Attacks", ico:"⚡",col:"#d88830",desc:"CD ×0.7",                   mod:{cd:.7},         lv:4},
+  {id:"sc",name:"Increased Crit", ico:"💀",col:"#d83030",desc:"+25% Crit Chance",          mod:{cb:25},         lv:6},
+  {id:"sa",name:"Added Fire",     ico:"🔥",col:"#d85520",desc:"+20% bonus damage",         mod:{bp:20},         lv:7},
+  {id:"sk",name:"Conc. Effect",   ico:"◎",col:"#7858d8",desc:"×1.4 damage",               mod:{dm:1.4},        lv:10},
+  {id:"sb",name:"Brutality",      ico:"⚔",col:"#c83820",desc:"×1.5 Phys damage",          mod:{dm:1.5},        lv:15},
+  {id:"sn",name:"Chain",          ico:"⛓",col:"#58d888",desc:"+2 hits, ×0.6 each",        mod:{eh:2,dm:0.6},  lv:12},
+  {id:"su",name:"Culling Strike", ico:"✂",col:"#d8a030",desc:"Instant kill at 10% HP",    mod:{cu:true},       lv:14},
+  {id:"sp",name:"Pierce",         ico:"→",col:"#58a8d8",desc:"+15% base damage",           mod:{bp:15},         lv:9},
+];
+const FL=[
+  {id:"fl_ls",name:"Life",       ico:"🧪",ty:"life", iv:5000, hp:30,lv:1},
+  {id:"fl_lm",name:"Life+",      ico:"🧪",ty:"life", iv:7000, hp:50,lv:5},
+  {id:"fl_ll",name:"Life++",     ico:"🧪",ty:"life", iv:9000, hp:75,lv:12},
+  {id:"fl_q", name:"Quicksilver",ico:"⚗", ty:"spd",  iv:12000,bv:40, bd:4000,lv:4},
+  {id:"fl_g", name:"Granite",    ico:"🪨",ty:"arm",  iv:16000,bv:600,bd:4000,lv:8},
+  {id:"fl_d", name:"Diamond",    ico:"💎",ty:"crit", iv:14000,bv:20, bd:4000,lv:10},
+  {id:"fl_dv",name:"Divine",     ico:"✨",ty:"life", iv:20000,hp:80, lv:20},
+];
+const FLS=5;
+
+// ── AREAS ────────────────────────────────────────────────────────
+const AREAS=[
+  {name:"The Coast",         t:1, kills:20, hp:80,     dmg:8},
+  {name:"The Ledge",         t:2, kills:25, hp:200,    dmg:22},
+  {name:"Cavern of Wrath",   t:3, kills:30, hp:520,    dmg:58},
+  {name:"Flooded Depths",    t:4, kills:35, hp:1400,   dmg:160},
+  {name:"Fellshrine Ruins",  t:5, kills:40, hp:3800,   dmg:440},
+  {name:"The Dread Thicket", t:6, kills:45, hp:1.05e4, dmg:1200},
+  {name:"Crystal Veins",     t:7, kills:50, hp:2.9e4,  dmg:3300},
+  {name:"Desolate Isle",     t:8, kills:55, hp:8e4,    dmg:9200},
+  {name:"Vaal Temple",       t:9, kills:60, hp:2.2e5,  dmg:2.6e4},
+  {name:"Altar of Lunaris",  t:10,kills:70, hp:6.2e5,  dmg:7.4e4},
+  {name:"Dread Citadel",     t:11,kills:80, hp:1.8e6,  dmg:2.1e5},
+  {name:"The Vaal Pyramid",  t:12,kills:90, hp:5.1e6,  dmg:6.1e5},
+  {name:"Shaper's Domain",   t:13,kills:100,hp:1.5e7,  dmg:1.8e6},
+  {name:"Elder's Realm",     t:14,kills:120,hp:4.5e7,  dmg:5.5e6},
+  {name:"Simulacrum",        t:15,kills:150,hp:1.4e8,  dmg:1.7e7},
+  {name:"The Void",          t:16,kills:180,hp:4.5e8,  dmg:5.5e7},
+  {name:"Abyss of Eternity", t:17,kills:220,hp:1.5e9,  dmg:1.8e8},
+  {name:"Chaos Pinnacle",    t:18,kills:270,hp:5e9,    dmg:6.2e8},
+  {name:"Divine Sanctum",    t:19,kills:340,hp:1.7e10, dmg:2.1e9},
+  {name:"The Infinite Realm",t:20,kills:420,hp:6e10,   dmg:7.5e9},
 ];
 
-// Support gems: modify the main skill's behavior
-const SUP_GEMS = [
-  {id:"s_multi",    name:"Multistrike",    ico:"✦", color:"#9858d8", desc:"+1 extra hit, ×0.7 each",   mod:{extraHits:1, dmgMult:0.7},  unlockLv:5 },
-  {id:"s_echo",     name:"Spell Echo",     ico:"↩", color:"#5888d8", desc:"+1 repeat, ×0.8 each",     mod:{extraHits:1, dmgMult:0.8},  unlockLv:8 },
-  {id:"s_faster",   name:"Faster Attacks", ico:"⚡", color:"#d88830", desc:"CD ×0.7",                  mod:{cdMult:0.7},                 unlockLv:4 },
-  {id:"s_crit",     name:"Increased Crit", ico:"💀", color:"#d83030", desc:"+25% Crit Chance",         mod:{critBonus:25},               unlockLv:6 },
-  {id:"s_added",    name:"Added Fire",     ico:"🔥", color:"#d85520", desc:"+20% Phys as Fire",        mod:{bonusDmgPct:20},             unlockLv:7 },
-  {id:"s_conc",     name:"Conc. Effect",   ico:"◎", color:"#7858d8", desc:"×1.4 dmg, smaller AoE",    mod:{dmgMult:1.4},                unlockLv:10},
-  {id:"s_pierce",   name:"Pierce",         ico:"→", color:"#58a8d8", desc:"+15% base damage",         mod:{bonusDmgPct:15},             unlockLv:9 },
-  {id:"s_brutality",name:"Brutality",      ico:"⚔", color:"#c83820", desc:"×1.5 Phys, no elemental",  mod:{dmgMult:1.5},                unlockLv:15},
-  {id:"s_chain",    name:"Chain",          ico:"⛓", color:"#58d888", desc:"+2 hits, ×0.6 each",       mod:{extraHits:2, dmgMult:0.6},  unlockLv:12},
-  {id:"s_culling",  name:"Culling Strike", ico:"✂", color:"#d8a030", desc:"Instant kill at 10% HP",   mod:{culling:true},               unlockLv:14},
+// ── 50 PASSIVES (10 rows × 5 cols) ──────────────────────────────
+const PASS=[
+  // Row 0 – Basic
+  {id:"p00",r:0,c:0,ty:"sm",s:"Phys",   n:"Brutal Strike",      d:"+15% Phys",                      e:{physPct:15}},
+  {id:"p01",r:0,c:1,ty:"sm",s:"Speed",  n:"Swift Strikes",      d:"+10% Atk Speed",                 e:{aspdPct:10}},
+  {id:"p02",r:0,c:2,ty:"sm",s:"Arm",    n:"Iron Skin",          d:"+20% Armour",                    e:{armPct:20}},
+  {id:"p03",r:0,c:3,ty:"sm",s:"HP",     n:"Vitality",           d:"+20% Max HP",                    e:{hpPct:20}},
+  {id:"p04",r:0,c:4,ty:"sm",s:"Crit",   n:"Lucky Hit",          d:"+5% Crit Chance",                e:{crit:5}},
+  // Row 1
+  {id:"p10",r:1,c:0,ty:"sm",s:"Phys",   n:"Sharp Edge",         d:"+20% Phys",                      e:{physPct:20},q:["p00"]},
+  {id:"p11",r:1,c:1,ty:"sm",s:"Speed",  n:"Rapid Assault",      d:"+15% Atk Speed",                 e:{aspdPct:15},q:["p01"]},
+  {id:"p12",r:1,c:2,ty:"sm",s:"Res",    n:"Thick Skin",         d:"+15% Resistances",               e:{resist:15},q:["p02"]},
+  {id:"p13",r:1,c:3,ty:"sm",s:"HP",     n:"Endurance",          d:"+15% Max HP",                    e:{hpPct:15},q:["p03"]},
+  {id:"p14",r:1,c:4,ty:"sm",s:"CritM",  n:"Precision",          d:"+50% Crit Multi",                e:{critM:50},q:["p04"]},
+  // Row 2 – Notable
+  {id:"p20",r:2,c:0,ty:"no",s:"Slash",  n:"Master of Slashing", d:"+35% Phys",                      e:{physPct:35},q:["p10"]},
+  {id:"p21",r:2,c:1,ty:"no",s:"Dual",   n:"Dual Strike",        d:"+25% Atk Speed",                 e:{aspdPct:25},q:["p11"]},
+  {id:"p22",r:2,c:2,ty:"no",s:"Fort",   n:"Steel Fortress",     d:"+50% Armour\n+10% Res",          e:{armPct:50,resist:10},q:["p12"]},
+  {id:"p23",r:2,c:3,ty:"no",s:"Body",   n:"Iron Body",          d:"+40% Max HP",                    e:{hpPct:40},q:["p13"]},
+  {id:"p24",r:2,c:4,ty:"no",s:"Lethal", n:"Lethal Blade",       d:"+10% Crit\n+80% Crit Multi",     e:{crit:10,critM:80},q:["p14"]},
+  // Row 3
+  {id:"p30",r:3,c:0,ty:"sm",s:"Leech",  n:"Life Tap",           d:"2% Life Leech",                  e:{leech:2},q:["p20"]},
+  {id:"p31",r:3,c:1,ty:"sm",s:"Speed",  n:"Whirling Dervish",   d:"+20% Atk Speed",                 e:{aspdPct:20},q:["p21"]},
+  {id:"p32",r:3,c:2,ty:"sm",s:"Arm",    n:"Basalt Skin",        d:"+30% Armour",                    e:{armPct:30},q:["p22"]},
+  {id:"p33",r:3,c:3,ty:"sm",s:"HP",     n:"Life Force",         d:"+25% Max HP",                    e:{hpPct:25},q:["p23"]},
+  {id:"p34",r:3,c:4,ty:"sm",s:"Crit",   n:"Assassin's Mark",    d:"+8% Crit Chance",                e:{crit:8},q:["p24"]},
+  // Row 4 – Notable
+  {id:"p40",r:4,c:0,ty:"no",s:"Fury",   n:"Warmonger",          d:"+50% Phys\n3% Leech",            e:{physPct:50,leech:3},q:["p30"]},
+  {id:"p41",r:4,c:1,ty:"no",s:"Gale",   n:"Gale Force",         d:"+50% Atk Speed",                 e:{aspdPct:50},q:["p31"]},
+  {id:"p42",r:4,c:2,ty:"no",s:"Undying",n:"Undying Flesh",      d:"+60% Max HP\n+30% Resist",       e:{hpPct:60,resist:30},q:["p32"]},
+  {id:"p43",r:4,c:3,ty:"no",s:"Blood",  n:"Blood Mage",         d:"+50% Max HP\n+40% Phys",         e:{hpPct:50,physPct:40},q:["p33"]},
+  {id:"p44",r:4,c:4,ty:"no",s:"Death",  n:"Death's Hand",       d:"+15% Crit\n+100% Crit Multi",    e:{crit:15,critM:100},q:["p34"]},
+  // Row 5
+  {id:"p50",r:5,c:0,ty:"sm",s:"Phys",   n:"Savage Strike",      d:"+30% Phys",                      e:{physPct:30},q:["p40"]},
+  {id:"p51",r:5,c:1,ty:"sm",s:"Speed",  n:"Lightning Reflexes", d:"+25% Atk Speed",                 e:{aspdPct:25},q:["p41"]},
+  {id:"p52",r:5,c:2,ty:"sm",s:"Res",    n:"Elemental Aegis",    d:"+25% All Resistances",           e:{resist:25},q:["p42"]},
+  {id:"p53",r:5,c:3,ty:"sm",s:"HP",     n:"Leviathan",          d:"+30% Max HP",                    e:{hpPct:30},q:["p43"]},
+  {id:"p54",r:5,c:4,ty:"sm",s:"CritM",  n:"Coup de Grace",      d:"+150% Crit Multi",               e:{critM:150},q:["p44"]},
+  // Row 6
+  {id:"p60",r:6,c:0,ty:"sm",s:"Phys",   n:"Executioner",        d:"+40% Phys",                      e:{physPct:40},q:["p50"]},
+  {id:"p61",r:6,c:1,ty:"sm",s:"Leech",  n:"Haemophilia",        d:"4% Life Leech",                  e:{leech:4},q:["p51"]},
+  {id:"p62",r:6,c:2,ty:"sm",s:"Arm",    n:"Stone Golem",        d:"+80% Armour",                    e:{armPct:80},q:["p52"]},
+  {id:"p63",r:6,c:3,ty:"sm",s:"HP",     n:"Colossus",           d:"+40% Max HP",                    e:{hpPct:40},q:["p53"]},
+  {id:"p64",r:6,c:4,ty:"sm",s:"Crit",   n:"Perfect Aim",        d:"+20% Crit Chance",               e:{crit:20},q:["p54"]},
+  // Row 7 – Notable
+  {id:"p70",r:7,c:0,ty:"no",s:"Reaper", n:"Soul Reaper",        d:"+80% Phys\n6% Leech",            e:{physPct:80,leech:6},q:["p60"]},
+  {id:"p71",r:7,c:1,ty:"no",s:"Vortex", n:"Blade Vortex",       d:"+60% Atk Speed\n+30% Phys",      e:{aspdPct:60,physPct:30},q:["p61"]},
+  {id:"p72",r:7,c:2,ty:"no",s:"Aegis",  n:"Divine Aegis",       d:"+100% Armour\n+40% Resist",      e:{armPct:100,resist:40},q:["p62"]},
+  {id:"p73",r:7,c:3,ty:"no",s:"Titan",  n:"Titan",              d:"+80% Max HP\n+50% Phys",         e:{hpPct:80,physPct:50},q:["p63"]},
+  {id:"p74",r:7,c:4,ty:"no",s:"Onsl.",  n:"Onslaught",          d:"+30% Crit\n+200% Crit Multi",    e:{crit:30,critM:200},q:["p64"]},
+  // Row 8
+  {id:"p80",r:8,c:0,ty:"sm",s:"Phys",   n:"Warlord",            d:"+60% Phys",                      e:{physPct:60},q:["p70"]},
+  {id:"p81",r:8,c:1,ty:"sm",s:"Speed",  n:"Blink",              d:"+40% Atk Speed",                 e:{aspdPct:40},q:["p71"]},
+  {id:"p82",r:8,c:2,ty:"sm",s:"Tank",   n:"Ironclad",           d:"+60% Armour\n+20% Resist",       e:{armPct:60,resist:20},q:["p72"]},
+  {id:"p83",r:8,c:3,ty:"sm",s:"HP",     n:"Immortal",           d:"+60% Max HP",                    e:{hpPct:60},q:["p73"]},
+  {id:"p84",r:8,c:4,ty:"sm",s:"CritM",  n:"Headhunter",         d:"+250% Crit Multi",               e:{critM:250},q:["p74"]},
+  // Row 9 – Keystones
+  {id:"p90",r:9,c:0,ty:"ks",s:"CARNAGE",n:"Avatar of Carnage",  d:"+100% Phys\n8% Life Leech",      e:{physPct:100,leech:8},q:["p80"]},
+  {id:"p91",r:9,c:1,ty:"ks",s:"SLTR",   n:"Aspect of Slaughter",d:"+100% Atk Speed\n+50% Phys",     e:{aspdPct:100,physPct:50},q:["p81"]},
+  {id:"p92",r:9,c:2,ty:"ks",s:"FORTRESS",n:"Living Fortress",   d:"+300% Armour\n+50% HP",          e:{armPct:300,hpPct:50},q:["p82"]},
+  {id:"p93",r:9,c:3,ty:"ks",s:"COLOSSUS",n:"Colossus Rising",   d:"+200% Max HP\n+100% Phys",       e:{hpPct:200,physPct:100},q:["p83"]},
+  {id:"p94",r:9,c:4,ty:"ks",s:"STORMS", n:"Shaper of Storms",   d:"+40% Crit\n+400% Crit Multi",    e:{crit:40,critM:400},q:["p84"]},
 ];
 
-// Flask data
-const FLASK_DEFS = [
-  {id:"fl_life_s",  name:"Life",    ico:"🧪", type:"life",  interval:5000,  healPct:30, buffDur:0,    unlockLv:1 },
-  {id:"fl_life_m",  name:"Life+",   ico:"🧪", type:"life",  interval:7000,  healPct:50, buffDur:0,    unlockLv:5 },
-  {id:"fl_life_l",  name:"Life++",  ico:"🧪", type:"life",  interval:9000,  healPct:75, buffDur:0,    unlockLv:12},
-  {id:"fl_quick",   name:"Quicksilver",ico:"⚗", type:"speed",interval:12000, healPct:0, buffDur:4000, buffVal:40, unlockLv:4 },
-  {id:"fl_granite", name:"Granite", ico:"🪨", type:"armor", interval:16000, healPct:0, buffDur:4000, buffVal:600,unlockLv:8 },
-  {id:"fl_diamond", name:"Diamond", ico:"💎", type:"crit",  interval:14000, healPct:0, buffDur:4000, buffVal:20, unlockLv:10},
-  {id:"fl_divine",  name:"Divine",  ico:"✨", type:"life",  interval:20000, healPct:80, buffDur:0,    unlockLv:20},
-];
-const FLASK_SLOTS = 5;
-
-// ── GAME DATA ──────────────────────────────────────────────────
-const CLASSES={
-  marauder:{name:"Marauder",ico:"⚔",color:"#cc4422",tag:"Strength",bonus:"+30% Phys, +50% HP",se:{physPct:30,hpPct:50},asc:{
-    juggernaut:{name:"Juggernaut",color:"#cc6622",desc:"Unstoppable fortress.",nodes:[
-      {id:"j0",t:"Minor",cost:1,name:"Unbreakable",desc:"+100% Armour",eff:{armPct:100}},
-      {id:"j1",t:"Minor",cost:1,name:"Unflinching",desc:"+5% Crit\n+50% Crit Multi",eff:{crit:5,critM:50},req:["j0"]},
-      {id:"j2",t:"Notable",cost:2,name:"Undeniable",desc:"+40% Atk Speed\n+30% Phys",eff:{aspdPct:40,physPct:30},req:["j0"]},
-      {id:"j3",t:"Keystone",cost:2,name:"UNYIELDING",desc:"+500% Armour",eff:{armPct:500},req:["j1","j2"]},
+// ── CLASSES ──────────────────────────────────────────────────────
+const CLS={
+  marauder:{name:"Marauder",ico:"⚔",col:"#cc4422",tag:"Strength",   bon:"+30% Phys, +50% HP",       se:{physPct:30,hpPct:50},asc:{
+    juggernaut:{name:"Juggernaut",col:"#cc6622",desc:"Unstoppable fortress.",nodes:[
+      {id:"j0",t:"Minor",cost:1,n:"Unbreakable",d:"+100% Armour",e:{armPct:100}},
+      {id:"j1",t:"Minor",cost:1,n:"Unflinching",d:"+5% Crit\n+50% Crit Multi",e:{crit:5,critM:50},q:["j0"]},
+      {id:"j2",t:"Notable",cost:2,n:"Undeniable",d:"+40% Atk Speed\n+30% Phys",e:{aspdPct:40,physPct:30},q:["j0"]},
+      {id:"j3",t:"Keystone",cost:2,n:"UNYIELDING",d:"+500% Armour",e:{armPct:500},q:["j1","j2"]},
     ]},
-    berserker:{name:"Berserker",color:"#aa2222",desc:"Savage fury unleashed.",nodes:[
-      {id:"b0",t:"Minor",cost:1,name:"War Bringer",desc:"+60% Phys\n+15% Atk Speed",eff:{physPct:60,aspdPct:15}},
-      {id:"b1",t:"Minor",cost:1,name:"Flicker Strike",desc:"+30% Atk Speed\n×1.5 Crit Multi",eff:{aspdPct:30,critMx:1.5},req:["b0"]},
-      {id:"b2",t:"Notable",cost:2,name:"Aspect of Carnage",desc:"+100% Phys",eff:{physPct:100},req:["b0"]},
-      {id:"b3",t:"Keystone",cost:2,name:"RITE OF RUIN",desc:"+200% Phys\n+50% Atk Speed",eff:{physPct:200,aspdPct:50},req:["b1","b2"]},
+    berserker:{name:"Berserker",col:"#aa2222",desc:"Savage fury unleashed.",nodes:[
+      {id:"b0",t:"Minor",cost:1,n:"War Bringer",d:"+60% Phys\n+15% Atk Speed",e:{physPct:60,aspdPct:15}},
+      {id:"b1",t:"Minor",cost:1,n:"Flicker Strike",d:"+30% Atk Speed\n×1.5 Crit Multi",e:{aspdPct:30,critMx:1.5},q:["b0"]},
+      {id:"b2",t:"Notable",cost:2,n:"Aspect of Carnage",d:"+100% Phys",e:{physPct:100},q:["b0"]},
+      {id:"b3",t:"Keystone",cost:2,n:"RITE OF RUIN",d:"+200% Phys\n+50% Atk Speed",e:{physPct:200,aspdPct:50},q:["b1","b2"]},
     ]},
-    chieftain:{name:"Chieftain",color:"#cc8822",desc:"Ancestral fire warlord.",nodes:[
-      {id:"c0",t:"Minor",cost:1,name:"Hinekora's Unease",desc:"+50% Max HP\n+20% All Res",eff:{hpPct:50,resist:20}},
-      {id:"c1",t:"Minor",cost:1,name:"Tawhoa's Chosen",desc:"+30% Phys\n6% Leech",eff:{physPct:30,leech:6},req:["c0"]},
-      {id:"c2",t:"Notable",cost:2,name:"Arohongui's Chosen",desc:"+60% Max HP\n+30% All Res",eff:{hpPct:60,resist:30},req:["c0"]},
-      {id:"c3",t:"Keystone",cost:2,name:"NGAMAHU'S FLAME",desc:"+150% Phys\nCurr×2",eff:{physPct:150,currMult:2},req:["c1","c2"]},
+    chieftain:{name:"Chieftain",col:"#cc8822",desc:"Ancestral fire warlord.",nodes:[
+      {id:"c0",t:"Minor",cost:1,n:"Hinekora's Unease",d:"+50% Max HP\n+20% All Res",e:{hpPct:50,resist:20}},
+      {id:"c1",t:"Minor",cost:1,n:"Tawhoa's Chosen",d:"+30% Phys\n6% Leech",e:{physPct:30,leech:6},q:["c0"]},
+      {id:"c2",t:"Notable",cost:2,n:"Arohongui's Chosen",d:"+60% Max HP\n+30% All Res",e:{hpPct:60,resist:30},q:["c0"]},
+      {id:"c3",t:"Keystone",cost:2,n:"NGAMAHU'S FLAME",d:"+150% Phys\nCurr×2",e:{physPct:150,currMult:2},q:["c1","c2"]},
     ]},
   }},
-  ranger:{name:"Ranger",ico:"🏹",color:"#22aa44",tag:"Dexterity",bonus:"+20% Atk Speed, +10% Crit",se:{aspdPct:20,crit:10},asc:{
-    deadeye:{name:"Deadeye",color:"#228844",desc:"The perfect shot.",nodes:[
-      {id:"de0",t:"Minor",cost:1,name:"Powerful Precision",desc:"+15% Crit\n+50% Crit Multi",eff:{crit:15,critM:50}},
-      {id:"de1",t:"Minor",cost:1,name:"Gathering Winds",desc:"+40% Atk Spd\n+15% Phys",eff:{aspdPct:40,physPct:15},req:["de0"]},
-      {id:"de2",t:"Notable",cost:2,name:"Tailwind",desc:"+60% Atk Spd\n+20% Phys",eff:{aspdPct:60,physPct:20},req:["de0"]},
-      {id:"de3",t:"Keystone",cost:2,name:"RUPTURE",desc:"+25% Crit\n+300% Crit Multi",eff:{crit:25,critM:300},req:["de1","de2"]},
+  ranger:{name:"Ranger",ico:"🏹",col:"#22aa44",tag:"Dexterity",    bon:"+20% Atk Speed, +10% Crit", se:{aspdPct:20,crit:10},asc:{
+    deadeye:{name:"Deadeye",col:"#228844",desc:"The perfect shot.",nodes:[
+      {id:"de0",t:"Minor",cost:1,n:"Powerful Precision",d:"+15% Crit\n+50% Crit Multi",e:{crit:15,critM:50}},
+      {id:"de1",t:"Minor",cost:1,n:"Gathering Winds",d:"+40% Atk Speed\n+15% Phys",e:{aspdPct:40,physPct:15},q:["de0"]},
+      {id:"de2",t:"Notable",cost:2,n:"Tailwind",d:"+60% Atk Speed\n+20% Phys",e:{aspdPct:60,physPct:20},q:["de0"]},
+      {id:"de3",t:"Keystone",cost:2,n:"RUPTURE",d:"+25% Crit\n+300% Crit Multi",e:{crit:25,critM:300},q:["de1","de2"]},
     ]},
-    pathfinder:{name:"Pathfinder",color:"#228866",desc:"Nature's bounty.",nodes:[
-      {id:"pf0",t:"Minor",cost:1,name:"Nature's Boon",desc:"Curr×1.5\n+20% Max HP",eff:{currMult:1.5,hpPct:20}},
-      {id:"pf1",t:"Minor",cost:1,name:"Master Herbalist",desc:"Curr×2\n+20% Atk Spd",eff:{currMult:2,aspdPct:20},req:["pf0"]},
-      {id:"pf2",t:"Notable",cost:2,name:"Nature's Reprisal",desc:"+50% Phys\n+20% Crit",eff:{physPct:50,crit:20},req:["pf0"]},
-      {id:"pf3",t:"Keystone",cost:2,name:"MASTER ALCHEMIST",desc:"Curr×5\n+40% Atk Spd",eff:{currMult:5,aspdPct:40},req:["pf1","pf2"]},
+    pathfinder:{name:"Pathfinder",col:"#228866",desc:"Nature's bounty.",nodes:[
+      {id:"pf0",t:"Minor",cost:1,n:"Nature's Boon",d:"Curr×1.5\n+20% Max HP",e:{currMult:1.5,hpPct:20}},
+      {id:"pf1",t:"Minor",cost:1,n:"Master Herbalist",d:"Curr×2\n+20% Atk Speed",e:{currMult:2,aspdPct:20},q:["pf0"]},
+      {id:"pf2",t:"Notable",cost:2,n:"Nature's Reprisal",d:"+50% Phys\n+20% Crit",e:{physPct:50,crit:20},q:["pf0"]},
+      {id:"pf3",t:"Keystone",cost:2,n:"MASTER ALCHEMIST",d:"Curr×5\n+40% Atk Speed",e:{currMult:5,aspdPct:40},q:["pf1","pf2"]},
     ]},
-    raider:{name:"Raider",color:"#aacc22",desc:"Pure speed.",nodes:[
-      {id:"ra0",t:"Minor",cost:1,name:"Rapid Assault",desc:"+30% Atk Spd\n+20% Phys",eff:{aspdPct:30,physPct:20}},
-      {id:"ra1",t:"Minor",cost:1,name:"Way of the Poacher",desc:"+50% Atk Spd\n+10% Crit",eff:{aspdPct:50,crit:10},req:["ra0"]},
-      {id:"ra2",t:"Notable",cost:2,name:"Avatar of the Slaughter",desc:"+30% Phys\n+30% Crit Multi",eff:{physPct:30,critM:30},req:["ra0"]},
-      {id:"ra3",t:"Keystone",cost:2,name:"AVATAR OF VEIL",desc:"+80% Atk Spd\n+50% Phys",eff:{aspdPct:80,physPct:50},req:["ra1","ra2"]},
-    ]},
-  }},
-  witch:{name:"Witch",ico:"🔮",color:"#8844cc",tag:"Intelligence",bonus:"+15% Crit, +100% Crit Multi",se:{crit:15,critM:100},asc:{
-    necromancer:{name:"Necromancer",color:"#6644aa",desc:"Death feeds power.",nodes:[
-      {id:"ne0",t:"Minor",cost:1,name:"Commander of Darkness",desc:"+25% Crit\n+50% Crit Multi",eff:{crit:25,critM:50}},
-      {id:"ne1",t:"Minor",cost:1,name:"Bone Sculptor",desc:"+40% Max HP\n+20% Armour",eff:{hpPct:40,armPct:20},req:["ne0"]},
-      {id:"ne2",t:"Notable",cost:2,name:"Mistress of Sacrifice",desc:"+80% Crit Multi\n8% Leech",eff:{critM:80,leech:8},req:["ne0"]},
-      {id:"ne3",t:"Keystone",cost:2,name:"ESSENCE GLUTTON",desc:"+200% Crit Multi\n+50% Max HP",eff:{critM:200,hpPct:50},req:["ne1","ne2"]},
-    ]},
-    occultist:{name:"Occultist",color:"#9944bb",desc:"Chaos and curses.",nodes:[
-      {id:"oc0",t:"Minor",cost:1,name:"Forbidden Power",desc:"+60% Crit Multi\n+15% Crit",eff:{critM:60,crit:15}},
-      {id:"oc1",t:"Minor",cost:1,name:"Malediction",desc:"+30% Phys\n+10% Crit",eff:{physPct:30,crit:10},req:["oc0"]},
-      {id:"oc2",t:"Notable",cost:2,name:"Vile Bastion",desc:"+60% Max HP\n+20% All Res",eff:{hpPct:60,resist:20},req:["oc0"]},
-      {id:"oc3",t:"Keystone",cost:2,name:"WICKED WARD",desc:"+150% Crit Multi\nCurr×2",eff:{critM:150,currMult:2},req:["oc1","oc2"]},
-    ]},
-    elementalist:{name:"Elementalist",color:"#cc4488",desc:"All elements obey.",nodes:[
-      {id:"el0",t:"Minor",cost:1,name:"Shaper of Desolation",desc:"+50% Phys\n+20% Crit Multi",eff:{physPct:50,critM:20}},
-      {id:"el1",t:"Minor",cost:1,name:"Beacon of Ruin",desc:"+40% Phys\n+15% Atk Spd",eff:{physPct:40,aspdPct:15},req:["el0"]},
-      {id:"el2",t:"Notable",cost:2,name:"Pendulum of Destruction",desc:"+30% Crit\n+100% Crit Multi",eff:{crit:30,critM:100},req:["el0"]},
-      {id:"el3",t:"Keystone",cost:2,name:"MASTERMIND OF DISCORD",desc:"+200% Phys\n+20% Crit",eff:{physPct:200,crit:20},req:["el1","el2"]},
+    raider:{name:"Raider",col:"#aacc22",desc:"Pure speed.",nodes:[
+      {id:"ra0",t:"Minor",cost:1,n:"Rapid Assault",d:"+30% Atk Speed\n+20% Phys",e:{aspdPct:30,physPct:20}},
+      {id:"ra1",t:"Minor",cost:1,n:"Way of the Poacher",d:"+50% Atk Speed\n+10% Crit",e:{aspdPct:50,crit:10},q:["ra0"]},
+      {id:"ra2",t:"Notable",cost:2,n:"Avatar of the Slaughter",d:"+30% Phys\n+30% Crit Multi",e:{physPct:30,critM:30},q:["ra0"]},
+      {id:"ra3",t:"Keystone",cost:2,n:"AVATAR OF VEIL",d:"+80% Atk Speed\n+50% Phys",e:{aspdPct:80,physPct:50},q:["ra1","ra2"]},
     ]},
   }},
-  shadow:{name:"Shadow",ico:"🗡",color:"#44bbaa",tag:"Dex/Int",bonus:"+20% Crit, +20% Atk Speed",se:{crit:20,aspdPct:20},asc:{
-    assassin:{name:"Assassin",color:"#33aa99",desc:"Every hit a killing blow.",nodes:[
-      {id:"as0",t:"Minor",cost:1,name:"Noxious Strike",desc:"+15% Crit\n+60% Crit Multi",eff:{crit:15,critM:60}},
-      {id:"as1",t:"Minor",cost:1,name:"Unstable Infusion",desc:"+25% Atk Spd\n+20% Phys",eff:{aspdPct:25,physPct:20},req:["as0"]},
-      {id:"as2",t:"Notable",cost:2,name:"Toxic Delivery",desc:"+20% Crit\n8% Leech",eff:{crit:20,leech:8},req:["as0"]},
-      {id:"as3",t:"Keystone",cost:2,name:"DEADLY INFUSION",desc:"+30% Crit\n+300% Crit Multi",eff:{crit:30,critM:300},req:["as1","as2"]},
+  witch:{name:"Witch",ico:"🔮",col:"#8844cc",tag:"Intelligence",  bon:"+15% Crit, +100% Crit Multi",se:{crit:15,critM:100},asc:{
+    necromancer:{name:"Necromancer",col:"#6644aa",desc:"Death feeds power.",nodes:[
+      {id:"ne0",t:"Minor",cost:1,n:"Commander of Darkness",d:"+25% Crit\n+50% Crit Multi",e:{crit:25,critM:50}},
+      {id:"ne1",t:"Minor",cost:1,n:"Bone Sculptor",d:"+40% Max HP\n+20% Armour",e:{hpPct:40,armPct:20},q:["ne0"]},
+      {id:"ne2",t:"Notable",cost:2,n:"Mistress of Sacrifice",d:"+80% Crit Multi\n8% Leech",e:{critM:80,leech:8},q:["ne0"]},
+      {id:"ne3",t:"Keystone",cost:2,n:"ESSENCE GLUTTON",d:"+200% Crit Multi\n+50% Max HP",e:{critM:200,hpPct:50},q:["ne1","ne2"]},
     ]},
-    trickster:{name:"Trickster",color:"#2288aa",desc:"Tricks the enemy to death.",nodes:[
-      {id:"tr0",t:"Minor",cost:1,name:"Swift Killer",desc:"+30% Atk Spd\n+30% Max HP",eff:{aspdPct:30,hpPct:30}},
-      {id:"tr1",t:"Minor",cost:1,name:"Weave the Arcane",desc:"+40% Atk Spd\nCurr×1.5",eff:{aspdPct:40,currMult:1.5},req:["tr0"]},
-      {id:"tr2",t:"Notable",cost:2,name:"Patient Reaper",desc:"+50% Phys\n+40% Max HP",eff:{physPct:50,hpPct:40},req:["tr0"]},
-      {id:"tr3",t:"Keystone",cost:2,name:"GHOST DANCE",desc:"+100% Atk Spd\n+50% Max HP",eff:{aspdPct:100,hpPct:50},req:["tr1","tr2"]},
+    occultist:{name:"Occultist",col:"#9944bb",desc:"Chaos and curses.",nodes:[
+      {id:"oc0",t:"Minor",cost:1,n:"Forbidden Power",d:"+60% Crit Multi\n+15% Crit",e:{critM:60,crit:15}},
+      {id:"oc1",t:"Minor",cost:1,n:"Malediction",d:"+30% Phys\n+10% Crit",e:{physPct:30,crit:10},q:["oc0"]},
+      {id:"oc2",t:"Notable",cost:2,n:"Vile Bastion",d:"+60% Max HP\n+20% All Res",e:{hpPct:60,resist:20},q:["oc0"]},
+      {id:"oc3",t:"Keystone",cost:2,n:"WICKED WARD",d:"+150% Crit Multi\nCurr×2",e:{critM:150,currMult:2},q:["oc1","oc2"]},
     ]},
-    saboteur:{name:"Saboteur",color:"#448822",desc:"Traps and mines.",nodes:[
-      {id:"sa0",t:"Minor",cost:1,name:"Born in the Shadows",desc:"+50% Armour\n+15% Crit",eff:{armPct:50,crit:15}},
-      {id:"sa1",t:"Minor",cost:1,name:"Chain Reaction",desc:"+80% Phys\n+20% Atk Spd",eff:{physPct:80,aspdPct:20},req:["sa0"]},
-      {id:"sa2",t:"Notable",cost:2,name:"Bomb Specialist",desc:"+100% Phys\n+20% Crit",eff:{physPct:100,crit:20},req:["sa0"]},
-      {id:"sa3",t:"Keystone",cost:2,name:"PERFECT CRIME",desc:"+200% Phys\nCurr×2",eff:{physPct:200,currMult:2},req:["sa1","sa2"]},
-    ]},
-  }},
-  templar:{name:"Templar",ico:"🛡",color:"#ddaa22",tag:"Str/Int",bonus:"+20% Phys, +20% HP, +15% Crit",se:{physPct:20,hpPct:20,crit:15},asc:{
-    inquisitor:{name:"Inquisitor",color:"#ddaa22",desc:"Holy fire burns heretics.",nodes:[
-      {id:"in0",t:"Minor",cost:1,name:"Righteous Providence",desc:"+20% Crit\n+80% Crit Multi",eff:{crit:20,critM:80}},
-      {id:"in1",t:"Minor",cost:1,name:"Inevitable Judgement",desc:"+30% Phys\n+25% Atk Spd",eff:{physPct:30,aspdPct:25},req:["in0"]},
-      {id:"in2",t:"Notable",cost:2,name:"Instruments of Virtue",desc:"+60% Phys\n+20% Crit",eff:{physPct:60,crit:20},req:["in0"]},
-      {id:"in3",t:"Keystone",cost:2,name:"AUGURY OF PENITENCE",desc:"+200% Phys\n+50% Crit Multi",eff:{physPct:200,critM:50},req:["in1","in2"]},
-    ]},
-    hierophant:{name:"Hierophant",color:"#aaaa22",desc:"Divine conduits.",nodes:[
-      {id:"hi0",t:"Minor",cost:1,name:"Pursuit of Faith",desc:"+60% Max HP\n+20% Armour",eff:{hpPct:60,armPct:20}},
-      {id:"hi1",t:"Minor",cost:1,name:"Conviction of Power",desc:"Curr×2\n+20% Phys",eff:{currMult:2,physPct:20},req:["hi0"]},
-      {id:"hi2",t:"Notable",cost:2,name:"Divine Guidance",desc:"+80% Max HP\n+30% All Res",eff:{hpPct:80,resist:30},req:["hi0"]},
-      {id:"hi3",t:"Keystone",cost:2,name:"ILLUMINATED DEVOTION",desc:"+150% Max HP\nCurr×3",eff:{hpPct:150,currMult:3},req:["hi1","hi2"]},
-    ]},
-    guardian:{name:"Guardian",color:"#cc9922",desc:"Impenetrable devotion.",nodes:[
-      {id:"gu0",t:"Minor",cost:1,name:"Radiant Faith",desc:"+80% Armour\n+30% All Res",eff:{armPct:80,resist:30}},
-      {id:"gu1",t:"Minor",cost:1,name:"Unwavering Faith",desc:"+50% Max HP\n+40% Armour",eff:{hpPct:50,armPct:40},req:["gu0"]},
-      {id:"gu2",t:"Notable",cost:2,name:"Bastion of Hope",desc:"+100% Armour\n5% Leech",eff:{armPct:100,leech:5},req:["gu0"]},
-      {id:"gu3",t:"Keystone",cost:2,name:"HAMMER OF GOD",desc:"+100% Phys\n+200% Armour",eff:{physPct:100,armPct:200},req:["gu1","gu2"]},
+    elementalist:{name:"Elementalist",col:"#cc4488",desc:"All elements obey.",nodes:[
+      {id:"el0",t:"Minor",cost:1,n:"Shaper of Desolation",d:"+50% Phys\n+20% Crit Multi",e:{physPct:50,critM:20}},
+      {id:"el1",t:"Minor",cost:1,n:"Beacon of Ruin",d:"+40% Phys\n+15% Atk Speed",e:{physPct:40,aspdPct:15},q:["el0"]},
+      {id:"el2",t:"Notable",cost:2,n:"Pendulum of Destruction",d:"+30% Crit\n+100% Crit Multi",e:{crit:30,critM:100},q:["el0"]},
+      {id:"el3",t:"Keystone",cost:2,n:"MASTERMIND",d:"+200% Phys\n+20% Crit",e:{physPct:200,crit:20},q:["el1","el2"]},
     ]},
   }},
-  duelist:{name:"Duelist",ico:"🤺",color:"#cc3366",tag:"Str/Dex",bonus:"+25% Phys, +20% Atk Speed",se:{physPct:25,aspdPct:20},asc:{
-    slayer:{name:"Slayer",color:"#cc3333",desc:"Culling strikes.",nodes:[
-      {id:"sl0",t:"Minor",cost:1,name:"Bane of Legends",desc:"+40% Phys\n+20% Atk Spd",eff:{physPct:40,aspdPct:20}},
-      {id:"sl1",t:"Minor",cost:1,name:"Headsman",desc:"+60% Phys\n5% Leech",eff:{physPct:60,leech:5},req:["sl0"]},
-      {id:"sl2",t:"Notable",cost:2,name:"Impact",desc:"+80% Phys\n+30% Atk Spd",eff:{physPct:80,aspdPct:30},req:["sl0"]},
-      {id:"sl3",t:"Keystone",cost:2,name:"OVERWHELM",desc:"+250% Phys\n8% Leech",eff:{physPct:250,leech:8},req:["sl1","sl2"]},
+  shadow:{name:"Shadow",ico:"🗡",col:"#44bbaa",tag:"Dex/Int",     bon:"+20% Crit, +20% Atk Speed",  se:{crit:20,aspdPct:20},asc:{
+    assassin:{name:"Assassin",col:"#33aa99",desc:"Every hit a killing blow.",nodes:[
+      {id:"as0",t:"Minor",cost:1,n:"Noxious Strike",d:"+15% Crit\n+60% Crit Multi",e:{crit:15,critM:60}},
+      {id:"as1",t:"Minor",cost:1,n:"Unstable Infusion",d:"+25% Atk Speed\n+20% Phys",e:{aspdPct:25,physPct:20},q:["as0"]},
+      {id:"as2",t:"Notable",cost:2,n:"Toxic Delivery",d:"+20% Crit\n8% Leech",e:{crit:20,leech:8},q:["as0"]},
+      {id:"as3",t:"Keystone",cost:2,n:"DEADLY INFUSION",d:"+30% Crit\n+300% Crit Multi",e:{crit:30,critM:300},q:["as1","as2"]},
     ]},
-    gladiator:{name:"Gladiator",color:"#cc5522",desc:"Blood and sand.",nodes:[
-      {id:"gl0",t:"Minor",cost:1,name:"Gratuitous Violence",desc:"+50% Phys\n+15% Atk Spd",eff:{physPct:50,aspdPct:15}},
-      {id:"gl1",t:"Minor",cost:1,name:"Outmatch and Outlast",desc:"+50% Armour\n+25% Max HP",eff:{armPct:50,hpPct:25},req:["gl0"]},
-      {id:"gl2",t:"Notable",cost:2,name:"Blood in the Eyes",desc:"+70% Phys\n+25% Crit",eff:{physPct:70,crit:25},req:["gl0"]},
-      {id:"gl3",t:"Keystone",cost:2,name:"ARENA MASTER",desc:"+150% Phys\n+80% Atk Spd",eff:{physPct:150,aspdPct:80},req:["gl1","gl2"]},
+    trickster:{name:"Trickster",col:"#2288aa",desc:"Tricks the enemy to death.",nodes:[
+      {id:"tr0",t:"Minor",cost:1,n:"Swift Killer",d:"+30% Atk Speed\n+30% Max HP",e:{aspdPct:30,hpPct:30}},
+      {id:"tr1",t:"Minor",cost:1,n:"Weave the Arcane",d:"+40% Atk Speed\nCurr×1.5",e:{aspdPct:40,currMult:1.5},q:["tr0"]},
+      {id:"tr2",t:"Notable",cost:2,n:"Patient Reaper",d:"+50% Phys\n+40% Max HP",e:{physPct:50,hpPct:40},q:["tr0"]},
+      {id:"tr3",t:"Keystone",cost:2,n:"GHOST DANCE",d:"+100% Atk Speed\n+50% Max HP",e:{aspdPct:100,hpPct:50},q:["tr1","tr2"]},
     ]},
-    champion:{name:"Champion",color:"#cc7722",desc:"Fortify and conquer.",nodes:[
-      {id:"ch0",t:"Minor",cost:1,name:"Conqueror",desc:"+60% Armour\n+30% Max HP",eff:{armPct:60,hpPct:30}},
-      {id:"ch1",t:"Minor",cost:1,name:"Worthy Foe",desc:"+40% Phys\n+20% Atk Spd",eff:{physPct:40,aspdPct:20},req:["ch0"]},
-      {id:"ch2",t:"Notable",cost:2,name:"Inspirational",desc:"+80% Max HP\n+40% Armour",eff:{hpPct:80,armPct:40},req:["ch0"]},
-      {id:"ch3",t:"Keystone",cost:2,name:"UNSTOPPABLE HERO",desc:"+100% Phys\n+100% Max HP",eff:{physPct:100,hpPct:100},req:["ch1","ch2"]},
+    saboteur:{name:"Saboteur",col:"#448822",desc:"Traps and mines.",nodes:[
+      {id:"sa0",t:"Minor",cost:1,n:"Born in the Shadows",d:"+50% Armour\n+15% Crit",e:{armPct:50,crit:15}},
+      {id:"sa1",t:"Minor",cost:1,n:"Chain Reaction",d:"+80% Phys\n+20% Atk Speed",e:{physPct:80,aspdPct:20},q:["sa0"]},
+      {id:"sa2",t:"Notable",cost:2,n:"Bomb Specialist",d:"+100% Phys\n+20% Crit",e:{physPct:100,crit:20},q:["sa0"]},
+      {id:"sa3",t:"Keystone",cost:2,n:"PERFECT CRIME",d:"+200% Phys\nCurr×2",e:{physPct:200,currMult:2},q:["sa1","sa2"]},
     ]},
   }},
-  scion:{name:"Scion",ico:"✨",color:"#88aaff",tag:"Str/Dex/Int",bonus:"+15% All Stats",se:{physPct:15,aspdPct:15,hpPct:15,crit:10},asc:{
-    ascendant:{name:"Ascendant",color:"#88aaff",desc:"Master of all paths.",nodes:[
-      {id:"ac0",t:"Minor",cost:1,name:"Path of the Marauder",desc:"+40% Phys\n+30% Max HP",eff:{physPct:40,hpPct:30}},
-      {id:"ac1",t:"Minor",cost:1,name:"Path of the Ranger",desc:"+30% Atk Spd\n+15% Crit",eff:{aspdPct:30,crit:15},req:["ac0"]},
-      {id:"ac2",t:"Notable",cost:2,name:"Path of the Witch",desc:"+80% Crit Multi\n+25% Crit",eff:{critM:80,crit:25},req:["ac0"]},
-      {id:"ac3",t:"Keystone",cost:2,name:"CONVERGENCE",desc:"+100% Phys\n+80% Atk Spd\n+100% Max HP",eff:{physPct:100,aspdPct:80,hpPct:100},req:["ac1","ac2"]},
+  templar:{name:"Templar",ico:"🛡",col:"#ddaa22",tag:"Str/Int",   bon:"+20% Phys, +20% HP, +15% Crit",se:{physPct:20,hpPct:20,crit:15},asc:{
+    inquisitor:{name:"Inquisitor",col:"#ddaa22",desc:"Holy fire burns heretics.",nodes:[
+      {id:"in0",t:"Minor",cost:1,n:"Righteous Providence",d:"+20% Crit\n+80% Crit Multi",e:{crit:20,critM:80}},
+      {id:"in1",t:"Minor",cost:1,n:"Inevitable Judgement",d:"+30% Phys\n+25% Atk Speed",e:{physPct:30,aspdPct:25},q:["in0"]},
+      {id:"in2",t:"Notable",cost:2,n:"Instruments of Virtue",d:"+60% Phys\n+20% Crit",e:{physPct:60,crit:20},q:["in0"]},
+      {id:"in3",t:"Keystone",cost:2,n:"AUGURY",d:"+200% Phys\n+50% Crit Multi",e:{physPct:200,critM:50},q:["in1","in2"]},
     ]},
-    paragon:{name:"Paragon of Calamity",color:"#aabb55",desc:"Return all calamity.",nodes:[
-      {id:"pa0",t:"Minor",cost:1,name:"Calamitous Presence",desc:"+50% Phys\n+50% Max HP",eff:{physPct:50,hpPct:50}},
-      {id:"pa1",t:"Minor",cost:1,name:"Armaments of Calamity",desc:"+40% Armour\n+25% All Res",eff:{armPct:40,resist:25},req:["pa0"]},
-      {id:"pa2",t:"Notable",cost:2,name:"Eye of Calamity",desc:"+60% Crit Multi\nCurr×2",eff:{critM:60,currMult:2},req:["pa0"]},
-      {id:"pa3",t:"Keystone",cost:2,name:"HEART OF CALAMITY",desc:"+200% Phys\n+100% Max HP\nCurr×2",eff:{physPct:200,hpPct:100,currMult:2},req:["pa1","pa2"]},
+    hierophant:{name:"Hierophant",col:"#aaaa22",desc:"Divine conduits.",nodes:[
+      {id:"hi0",t:"Minor",cost:1,n:"Pursuit of Faith",d:"+60% Max HP\n+20% Armour",e:{hpPct:60,armPct:20}},
+      {id:"hi1",t:"Minor",cost:1,n:"Conviction of Power",d:"Curr×2\n+20% Phys",e:{currMult:2,physPct:20},q:["hi0"]},
+      {id:"hi2",t:"Notable",cost:2,n:"Divine Guidance",d:"+80% Max HP\n+30% All Res",e:{hpPct:80,resist:30},q:["hi0"]},
+      {id:"hi3",t:"Keystone",cost:2,n:"ILLUMINATED DEVOTION",d:"+150% Max HP\nCurr×3",e:{hpPct:150,currMult:3},q:["hi1","hi2"]},
     ]},
-    polymath:{name:"Polymath",color:"#55aacc",desc:"Knowledge is power.",nodes:[
-      {id:"po0",t:"Minor",cost:1,name:"Born to Lead",desc:"+30% All Stats",eff:{physPct:30,aspdPct:30,hpPct:30}},
-      {id:"po1",t:"Minor",cost:1,name:"Grand Spectrum",desc:"Curr×2\n+20% Crit",eff:{currMult:2,crit:20},req:["po0"]},
-      {id:"po2",t:"Notable",cost:2,name:"Inspired Learning",desc:"+50% All Stats",eff:{physPct:50,aspdPct:50,hpPct:50},req:["po0"]},
-      {id:"po3",t:"Keystone",cost:2,name:"SOLARIS AND LUNARIS",desc:"+100% All Stats\nCurr×3",eff:{physPct:100,aspdPct:100,hpPct:100,currMult:3},req:["po1","po2"]},
+    guardian:{name:"Guardian",col:"#cc9922",desc:"Impenetrable devotion.",nodes:[
+      {id:"gu0",t:"Minor",cost:1,n:"Radiant Faith",d:"+80% Armour\n+30% All Res",e:{armPct:80,resist:30}},
+      {id:"gu1",t:"Minor",cost:1,n:"Unwavering Faith",d:"+50% Max HP\n+40% Armour",e:{hpPct:50,armPct:40},q:["gu0"]},
+      {id:"gu2",t:"Notable",cost:2,n:"Bastion of Hope",d:"+100% Armour\n5% Leech",e:{armPct:100,leech:5},q:["gu0"]},
+      {id:"gu3",t:"Keystone",cost:2,n:"HAMMER OF GOD",d:"+100% Phys\n+200% Armour",e:{physPct:100,armPct:200},q:["gu1","gu2"]},
+    ]},
+  }},
+  duelist:{name:"Duelist",ico:"🤺",col:"#cc3366",tag:"Str/Dex",   bon:"+25% Phys, +20% Atk Speed",  se:{physPct:25,aspdPct:20},asc:{
+    slayer:{name:"Slayer",col:"#cc3333",desc:"Culling strikes.",nodes:[
+      {id:"sl0",t:"Minor",cost:1,n:"Bane of Legends",d:"+40% Phys\n+20% Atk Speed",e:{physPct:40,aspdPct:20}},
+      {id:"sl1",t:"Minor",cost:1,n:"Headsman",d:"+60% Phys\n5% Leech",e:{physPct:60,leech:5},q:["sl0"]},
+      {id:"sl2",t:"Notable",cost:2,n:"Impact",d:"+80% Phys\n+30% Atk Speed",e:{physPct:80,aspdPct:30},q:["sl0"]},
+      {id:"sl3",t:"Keystone",cost:2,n:"OVERWHELM",d:"+250% Phys\n8% Leech",e:{physPct:250,leech:8},q:["sl1","sl2"]},
+    ]},
+    gladiator:{name:"Gladiator",col:"#cc5522",desc:"Blood and sand.",nodes:[
+      {id:"gl0",t:"Minor",cost:1,n:"Gratuitous Violence",d:"+50% Phys\n+15% Atk Speed",e:{physPct:50,aspdPct:15}},
+      {id:"gl1",t:"Minor",cost:1,n:"Outmatch and Outlast",d:"+50% Armour\n+25% Max HP",e:{armPct:50,hpPct:25},q:["gl0"]},
+      {id:"gl2",t:"Notable",cost:2,n:"Blood in the Eyes",d:"+70% Phys\n+25% Crit",e:{physPct:70,crit:25},q:["gl0"]},
+      {id:"gl3",t:"Keystone",cost:2,n:"ARENA MASTER",d:"+150% Phys\n+80% Atk Speed",e:{physPct:150,aspdPct:80},q:["gl1","gl2"]},
+    ]},
+    champion:{name:"Champion",col:"#cc7722",desc:"Fortify and conquer.",nodes:[
+      {id:"ch0",t:"Minor",cost:1,n:"Conqueror",d:"+60% Armour\n+30% Max HP",e:{armPct:60,hpPct:30}},
+      {id:"ch1",t:"Minor",cost:1,n:"Worthy Foe",d:"+40% Phys\n+20% Atk Speed",e:{physPct:40,aspdPct:20},q:["ch0"]},
+      {id:"ch2",t:"Notable",cost:2,n:"Inspirational",d:"+80% Max HP\n+40% Armour",e:{hpPct:80,armPct:40},q:["ch0"]},
+      {id:"ch3",t:"Keystone",cost:2,n:"UNSTOPPABLE HERO",d:"+100% Phys\n+100% Max HP",e:{physPct:100,hpPct:100},q:["ch1","ch2"]},
+    ]},
+  }},
+  scion:{name:"Scion",ico:"✨",col:"#88aaff",tag:"Str/Dex/Int",  bon:"+15% All Stats",               se:{physPct:15,aspdPct:15,hpPct:15,crit:10},asc:{
+    ascendant:{name:"Ascendant",col:"#88aaff",desc:"Master of all paths.",nodes:[
+      {id:"ac0",t:"Minor",cost:1,n:"Path of the Marauder",d:"+40% Phys\n+30% Max HP",e:{physPct:40,hpPct:30}},
+      {id:"ac1",t:"Minor",cost:1,n:"Path of the Ranger",d:"+30% Atk Speed\n+15% Crit",e:{aspdPct:30,crit:15},q:["ac0"]},
+      {id:"ac2",t:"Notable",cost:2,n:"Path of the Witch",d:"+80% Crit Multi\n+25% Crit",e:{critM:80,crit:25},q:["ac0"]},
+      {id:"ac3",t:"Keystone",cost:2,n:"CONVERGENCE",d:"+100% Phys\n+80% Atk Speed\n+100% HP",e:{physPct:100,aspdPct:80,hpPct:100},q:["ac1","ac2"]},
+    ]},
+    paragon:{name:"Paragon of Calamity",col:"#aabb55",desc:"Return all calamity.",nodes:[
+      {id:"pa0",t:"Minor",cost:1,n:"Calamitous Presence",d:"+50% Phys\n+50% Max HP",e:{physPct:50,hpPct:50}},
+      {id:"pa1",t:"Minor",cost:1,n:"Armaments",d:"+40% Armour\n+25% All Res",e:{armPct:40,resist:25},q:["pa0"]},
+      {id:"pa2",t:"Notable",cost:2,n:"Eye of Calamity",d:"+60% Crit Multi\nCurr×2",e:{critM:60,currMult:2},q:["pa0"]},
+      {id:"pa3",t:"Keystone",cost:2,n:"HEART OF CALAMITY",d:"+200% Phys\n+100% HP\nCurr×2",e:{physPct:200,hpPct:100,currMult:2},q:["pa1","pa2"]},
+    ]},
+    polymath:{name:"Polymath",col:"#55aacc",desc:"Knowledge is power.",nodes:[
+      {id:"po0",t:"Minor",cost:1,n:"Born to Lead",d:"+30% All Stats",e:{physPct:30,aspdPct:30,hpPct:30}},
+      {id:"po1",t:"Minor",cost:1,n:"Grand Spectrum",d:"Curr×2\n+20% Crit",e:{currMult:2,crit:20},q:["po0"]},
+      {id:"po2",t:"Notable",cost:2,n:"Inspired Learning",d:"+50% All Stats",e:{physPct:50,aspdPct:50,hpPct:50},q:["po0"]},
+      {id:"po3",t:"Keystone",cost:2,n:"SOLARIS AND LUNARIS",d:"+100% All Stats\nCurr×3",e:{physPct:100,aspdPct:100,hpPct:100,currMult:3},q:["po1","po2"]},
     ]},
   }},
 };
 
-const AREAS=[
-  {name:"The Coast",t:1,kills:20,hp:80,dmg:8},{name:"The Ledge",t:2,kills:25,hp:200,dmg:22},
-  {name:"Cavern of Wrath",t:3,kills:30,hp:520,dmg:58},{name:"Flooded Depths",t:4,kills:35,hp:1400,dmg:160},
-  {name:"Fellshrine Ruins",t:5,kills:40,hp:3800,dmg:440},{name:"The Dread Thicket",t:6,kills:45,hp:1.05e4,dmg:1200},
-  {name:"Crystal Veins",t:7,kills:50,hp:2.9e4,dmg:3300},{name:"Desolate Isle",t:8,kills:55,hp:8e4,dmg:9200},
-  {name:"Vaal Temple",t:9,kills:60,hp:2.2e5,dmg:2.6e4},{name:"Altar of Lunaris",t:10,kills:70,hp:6.2e5,dmg:7.4e4},
-  {name:"Dread Citadel",t:11,kills:80,hp:1.8e6,dmg:2.1e5},{name:"The Vaal Pyramid",t:12,kills:90,hp:5.1e6,dmg:6.1e5},
-  {name:"Shaper's Domain",t:13,kills:100,hp:1.5e7,dmg:1.8e6},{name:"Elder's Realm",t:14,kills:120,hp:4.5e7,dmg:5.5e6},
-  {name:"Simulacrum",t:15,kills:150,hp:1.4e8,dmg:1.7e7},{name:"The Void",t:16,kills:180,hp:4.5e8,dmg:5.5e7},
-  {name:"Abyss of Eternity",t:17,kills:220,hp:1.5e9,dmg:1.8e8},{name:"Chaos Pinnacle",t:18,kills:270,hp:5e9,dmg:6.2e8},
-  {name:"Divine Sanctum",t:19,kills:340,hp:1.7e10,dmg:2.1e9},{name:"The Infinite Realm",t:20,kills:420,hp:6e10,dmg:7.5e9},
-];
-const PASSIVES=[
-  {id:"p0",row:0,ty:"sm",s:"Phys",name:"Brutal Strike",desc:"+15% Phys",eff:{physPct:15}},
-  {id:"p1",row:0,ty:"sm",s:"Speed",name:"Swift Strikes",desc:"+10% Atk Speed",eff:{aspdPct:10}},
-  {id:"p2",row:0,ty:"sm",s:"Arm",name:"Iron Skin",desc:"+20% Armour",eff:{armPct:20}},
-  {id:"p3",row:0,ty:"sm",s:"HP",name:"Vitality",desc:"+20% Max HP",eff:{hpPct:20}},
-  {id:"p4",row:0,ty:"sm",s:"Crit",name:"Lucky Hit",desc:"+5% Crit",eff:{crit:5}},
-  {id:"p5",row:1,ty:"no",s:"Slash",name:"Master of Slashing",desc:"+35% Phys",eff:{physPct:35},req:["p0"]},
-  {id:"p6",row:1,ty:"no",s:"Dual",name:"Dual Strike",desc:"+25% Atk Speed",eff:{aspdPct:25},req:["p1"]},
-  {id:"p7",row:1,ty:"no",s:"Fort",name:"Steel Fortress",desc:"+50% Armour\n+15% All Res",eff:{armPct:50,resist:15},req:["p2"]},
-  {id:"p8",row:1,ty:"no",s:"Body",name:"Iron Body",desc:"+40% Max HP",eff:{hpPct:40},req:["p3"]},
-  {id:"p9",row:1,ty:"no",s:"Lethal",name:"Lethal Blade",desc:"+10% Crit\n+80% Crit Multi",eff:{crit:10,critM:80},req:["p4"]},
-  {id:"p10",row:2,ty:"ks",s:"CARNAGE",name:"Avatar of Carnage",desc:"+80% Phys\n4% Leech",eff:{physPct:80,leech:4},req:["p5"]},
-  {id:"p11",row:2,ty:"no",s:"Gale",name:"Gale Force",desc:"+50% Atk Speed",eff:{aspdPct:50},req:["p6"]},
-  {id:"p12",row:2,ty:"no",s:"Undying",name:"Undying Flesh",desc:"+60% Max HP\n+30% Res",eff:{hpPct:60,resist:30},req:["p7"]},
-  {id:"p13",row:2,ty:"no",s:"Blood",name:"Blood Mage",desc:"+50% Max HP\n+40% Phys",eff:{hpPct:50,physPct:40},req:["p8"]},
-  {id:"p14",row:2,ty:"ks",s:"STORMS",name:"Shaper of Storms",desc:"+25% Crit\n+200% Crit Multi",eff:{crit:25,critM:200},req:["p9"]},
-];
-const UPGRADES=[
-  {id:"u0",name:"Sharp Blades",ico:"⚔",desc:"+50% Phys",base:150,mult:3.0,eff:{physPct:50},max:25},
-  {id:"u1",name:"Speed Potion",ico:"⚡",desc:"+20% Atk Spd",base:280,mult:3.2,eff:{aspdPct:20},max:20},
-  {id:"u2",name:"Life Stone",ico:"❤",desc:"+30% Max HP",base:200,mult:2.8,eff:{hpPct:30},max:25},
-  {id:"u3",name:"Iron Heart",ico:"🛡",desc:"+40% Armour",base:450,mult:3.5,eff:{armPct:40},max:20},
-  {id:"u4",name:"Crit Mastery",ico:"💀",desc:"+50% Crit Multi",base:700,mult:3.8,eff:{critM:50},max:20},
-  {id:"u5",name:"Curr Refinery",ico:"💰",desc:"+100% Curr Drop",base:1200,mult:4.5,eff:{currMult:1},max:15},
-  {id:"u6",name:"Dark Power",ico:"🔥",desc:"+100% Phys",base:7000,mult:5.5,eff:{physPct:100},max:15},
-  {id:"u7",name:"Time Warp",ico:"⏳",desc:"+50% Atk Spd",base:2e4,mult:7.0,eff:{aspdPct:50},max:10},
-  {id:"u8",name:"Undying Oath",ico:"✨",desc:"+100% Max HP",base:4.5e4,mult:7.0,eff:{hpPct:100},max:10},
-  {id:"u9",name:"Wrath of God",ico:"🌟",desc:"+300% Phys",base:2e5,mult:9.0,eff:{physPct:300},max:8},
+// ── UPGRADES ─────────────────────────────────────────────────────
+const UPG=[
+  {id:"u0",name:"Sharp Blades",   ico:"⚔",d:"+50% Phys",        base:150,  m:3.0,e:{physPct:50},  max:25},
+  {id:"u1",name:"Speed Potion",   ico:"⚡",d:"+20% Atk Speed",   base:280,  m:3.2,e:{aspdPct:20},  max:20},
+  {id:"u2",name:"Life Stone",     ico:"❤",d:"+30% Max HP",       base:200,  m:2.8,e:{hpPct:30},    max:25},
+  {id:"u3",name:"Iron Heart",     ico:"🛡",d:"+40% Armour",       base:450,  m:3.5,e:{armPct:40},   max:20},
+  {id:"u4",name:"Crit Mastery",   ico:"💀",d:"+50% Crit Multi",   base:700,  m:3.8,e:{critM:50},    max:20},
+  {id:"u5",name:"Curr Refinery",  ico:"💰",d:"+100% Curr Drop",   base:1200, m:4.5,e:{currMult:1},  max:15},
+  {id:"u6",name:"Dark Power",     ico:"🔥",d:"+100% Phys",        base:7000, m:5.5,e:{physPct:100}, max:15},
+  {id:"u7",name:"Time Warp",      ico:"⏳",d:"+50% Atk Speed",    base:2e4,  m:7.0,e:{aspdPct:50},  max:10},
+  {id:"u8",name:"Undying Oath",   ico:"✨",d:"+100% Max HP",      base:4.5e4,m:7.0,e:{hpPct:100},   max:10},
+  {id:"u9",name:"Wrath of God",   ico:"🌟",d:"+300% Phys",        base:2e5,  m:9.0,e:{physPct:300}, max:8},
 ];
 const PUPS=[
-  {id:"q0",name:"Warlord's Crest",ico:"👑",desc:"Dmg×2",cost:1,eff:{dmgMult:2}},
-  {id:"q1",name:"Immortal Soul",ico:"💎",desc:"HP×2",cost:1,eff:{hpMult:2}},
-  {id:"q2",name:"Time Conqueror",ico:"⏱",desc:"Spd×1.5",cost:1,eff:{aspdMult:1.5}},
-  {id:"q3",name:"Currency Baron",ico:"🪙",desc:"Curr×3",cost:2,eff:{currMult:3}},
-  {id:"q4",name:"Divine Power",ico:"⚡",desc:"All×2",cost:3,eff:{allMult:2}},
+  {id:"q0",n:"Warlord's Crest",ico:"👑",d:"Dmg×2",  cost:1,e:{dmgMult:2}},
+  {id:"q1",n:"Immortal Soul",  ico:"💎",d:"HP×2",   cost:1,e:{hpMult:2}},
+  {id:"q2",n:"Time Conqueror", ico:"⏱",d:"Spd×1.5",cost:1,e:{aspdMult:1.5}},
+  {id:"q3",n:"Currency Baron", ico:"🪙",d:"Curr×3", cost:2,e:{currMult:3}},
+  {id:"q4",n:"Divine Power",   ico:"⚡",d:"All×2",  cost:3,e:{allMult:2}},
 ];
+
+// ── ITEM DATA ────────────────────────────────────────────────────
 const EPOOL=["Rhoa","Zombie","Skeleton","Sand Leaper","Goatman","Corrupted Soul","Vaal Guard","Storm Herald","Crypt Fiend","Void Spawn"];
 const BPOOL=["Merveil, the Twisted","Vaal Oversoul","Piety of Abomination","The Merciless King","The Shaper","Sirus, Awakener","The Maven","Malachai the Nightmare","Atziri, Queen of the Vaal"];
 const PRE=["Brutal","Vile","Ancient","Twisted","Corrupted","Forsaken","Infernal","Blighted","Hungering","Wretched"];
@@ -529,758 +609,494 @@ const SLOTS=["weapon","armor","helm","boots","ring"];
 const SLOTL={weapon:"Weapon",armor:"Body",helm:"Helm",boots:"Boots",ring:"Ring"};
 const SBASES={weapon:["Dagger","Sword","Axe","Mace","Bow","Staff","Claw","Wand"],armor:["Leather Vest","Chain Mail","Plate Armour","Robe","Astral Plate"],helm:["Leather Cap","Iron Helm","Wizard Hat","Crown","Hubris Circlet"],boots:["Leather Boots","Iron Boots","Sorcerer Boots","Dragonscale Boots"],ring:["Copper Ring","Gold Ring","Sapphire Ring","Coral Ring","Diamond Ring"]};
 const UNIQ=[
-  {name:"Kaom's Heart",slot:"armor",stats:["+500% Max HP"],eff:{hpPct:500}},
-  {name:"Atziri's Disfavour",slot:"weapon",stats:["+300% Phys","+25% Spd"],eff:{physPct:300,aspdPct:25}},
-  {name:"Headhunter",slot:"ring",stats:["Steal Mods on Kill","+80% Max HP"],eff:{hpPct:80,physPct:50}},
-  {name:"Starforge",slot:"weapon",stats:["+400% Phys"],eff:{physPct:400}},
-  {name:"The Saviour",slot:"weapon",stats:["+200% Phys","+30% Spd"],eff:{physPct:200,aspdPct:30}},
-  {name:"Shaper's Touch",slot:"ring",stats:["+300% HP","+20% Phys"],eff:{hpPct:300,physPct:20}},
-  {name:"Kaom's Roots",slot:"boots",stats:["+400% Max HP"],eff:{hpPct:400}},
-  {name:"Mageblood",slot:"ring",stats:["Curr×4","+50% Max HP"],eff:{currMult:4,hpPct:50}},
-  {name:"The Maven's Writ",slot:"ring",stats:["+200% Crit Multi","+20% Crit"],eff:{critM:200,crit:20}},
+  {name:"Kaom's Heart",      slot:"armor", stats:["+500% Max HP"],              eff:{hpPct:500}},
+  {name:"Atziri's Disfavour",slot:"weapon",stats:["+300% Phys","+25% Atk Spd"],eff:{physPct:300,aspdPct:25}},
+  {name:"Headhunter",        slot:"ring",  stats:["Steal Mods","+80% Max HP"],  eff:{hpPct:80,physPct:50}},
+  {name:"Starforge",         slot:"weapon",stats:["+400% Phys"],                eff:{physPct:400}},
+  {name:"The Saviour",       slot:"weapon",stats:["+200% Phys","+30% Atk Spd"],eff:{physPct:200,aspdPct:30}},
+  {name:"Shaper's Touch",    slot:"ring",  stats:["+300% HP","+20% Phys"],      eff:{hpPct:300,physPct:20}},
+  {name:"Kaom's Roots",      slot:"boots", stats:["+400% Max HP"],              eff:{hpPct:400}},
+  {name:"Mageblood",         slot:"ring",  stats:["Curr×4","+50% Max HP"],      eff:{currMult:4,hpPct:50}},
+  {name:"Maven's Writ",      slot:"ring",  stats:["+200% Crit Multi","+20% Crit"],eff:{critM:200,crit:20}},
 ];
-const CURRD=[
-  {id:"alt",s:"Alt",name:"Orb of Alteration",w:50,c:"#5566cc"},
-  {id:"alch",s:"Alch",name:"Orb of Alchemy",w:20,c:"#cc7722"},
-  {id:"chaos",s:"Chaos",name:"Chaos Orb",w:5,c:"#bb3388"},
-  {id:"exalt",s:"Ex",name:"Exalted Orb",w:1,c:"#f0b030"},
-];
+const CURRD=[{id:"alt",s:"Alt",name:"Orb of Alteration",w:50,c:"#5566cc"},{id:"alch",s:"Alch",name:"Orb of Alchemy",w:20,c:"#cc7722"},{id:"chaos",s:"Chaos",name:"Chaos Orb",w:5,c:"#bb3388"},{id:"exalt",s:"Ex",name:"Exalted Orb",w:1,c:"#f0b030"}];
 const CURRV={alt:1,alch:4,chaos:40,exalt:400};
 const RCOL={normal:"#c0c0c0",magic:"#8888ff",rare:"#ffff77",unique:"#d47828",boss:"#ff8844"};
-const LCOL={hit:"#e8dac5",crit:"#ffcc44",kill:"#38aa38",level:"#88aaff",area:"#c89028",drop:"#ffff77",unique:"#d47828",currency:"#a89878",passive:"#9858d8",prestige:"#ee88ee",upgrade:"#44ffcc",asc:"#f0b030",skill:"#88ddff",flask:"#44cc88",craft:"#ffaa44"};
+const LCOL={hit:"#c8b89a",crit:"#ffcc44",kill:"#44cc44",level:"#88aaff",area:"#c89028",drop:"#ffff77",unique:"#d47828",currency:"#a89878",passive:"#9858d8",prestige:"#ee88ee",upgrade:"#44ffcc",asc:"#f0b030",skill:"#88ddff",flask:"#44cc88",craft:"#ffaa44",bossdeath:"#ff6644"};
 
-// ── CRAFT UPGRADE COSTS ─────────────────────────────────────────
-// Simple tiers: currency cost per enhancement level
-const CRAFT_TIERS = [
-  {name:"Orb of Alteration", cost:{alt:1},   label:"Re-roll 1 mod"},
-  {name:"Orb of Alchemy",    cost:{alch:1},  label:"Add 2 mods (Normal→Rare)"},
-  {name:"Chaos Orb",         cost:{chaos:1}, label:"Re-roll ALL mods"},
-  {name:"Exalted Orb",       cost:{exalt:1}, label:"Add 1 mod (max 6)"},
-];
-const CRAFT_MOD_POOL = {
+// ── CRAFT MODS ────────────────────────────────────────────────────
+const CM={
   weapon:[
-    {key:"physPct",  fmt:v=>`+${v}% Phys Damage`,         min:20,max:120,step:20},
-    {key:"aspdPct",  fmt:v=>`+${v}% Attack Speed`,         min:10,max:50, step:10},
-    {key:"critM",    fmt:v=>`+${v}% Crit Multiplier`,      min:20,max:100,step:20},
-    {key:"crit",     fmt:v=>`+${v}% Crit Chance`,          min:5, max:25, step:5},
-    {key:"leech",    fmt:v=>`${v}% Life Leech`,            min:1, max:6,  step:1},
+    {k:"physPct", f:v=>`+${v}% Phys Damage`,      min:20,max:120,step:20},
+    {k:"aspdPct", f:v=>`+${v}% Attack Speed`,       min:10,max:50, step:10},
+    {k:"critM",   f:v=>`+${v}% Crit Multiplier`,    min:20,max:100,step:20},
+    {k:"crit",    f:v=>`+${v}% Crit Chance`,         min:5, max:25, step:5},
+    {k:"leech",   f:v=>`${v}% Life Leech`,           min:1, max:6,  step:1},
   ],
   armor:[
-    {key:"hpPct",    fmt:v=>`+${v}% Max Life`,             min:20,max:120,step:20},
-    {key:"armPct",   fmt:v=>`+${v}% Armour`,               min:20,max:120,step:20},
-    {key:"resist",   fmt:v=>`+${v}% All Resistances`,      min:10,max:50, step:10},
-    {key:"leech",    fmt:v=>`${v}% Life Leech`,            min:1, max:4,  step:1},
-    {key:"physPct",  fmt:v=>`+${v}% Damage`,               min:10,max:60, step:10},
+    {k:"hpPct",  f:v=>`+${v}% Max Life`,            min:20,max:120,step:20},
+    {k:"armPct", f:v=>`+${v}% Armour`,              min:20,max:120,step:20},
+    {k:"resist", f:v=>`+${v}% All Resistances`,     min:10,max:50, step:10},
+    {k:"leech",  f:v=>`${v}% Life Leech`,           min:1, max:4,  step:1},
+    {k:"physPct",f:v=>`+${v}% Damage`,              min:10,max:60, step:10},
   ],
   ring:[
-    {key:"physPct",  fmt:v=>`+${v}% Phys Damage`,          min:10,max:80, step:10},
-    {key:"hpPct",    fmt:v=>`+${v}% Max Life`,             min:15,max:80, step:15},
-    {key:"critM",    fmt:v=>`+${v}% Crit Multiplier`,      min:20,max:80, step:20},
-    {key:"currMult", fmt:v=>`+${(v*100).toFixed(0)}% Currency`, min:.3,max:1.5,step:.3},
-    {key:"resist",   fmt:v=>`+${v}% All Resistances`,      min:5, max:30, step:5},
+    {k:"physPct",  f:v=>`+${v}% Phys Damage`,       min:10,max:80, step:10},
+    {k:"hpPct",    f:v=>`+${v}% Max Life`,          min:15,max:80, step:15},
+    {k:"critM",    f:v=>`+${v}% Crit Multiplier`,   min:20,max:80, step:20},
+    {k:"currMult", f:v=>`+${(v*100).toFixed(0)}% Currency`,min:.3,max:1.5,step:.3},
+    {k:"resist",   f:v=>`+${v}% All Resistances`,   min:5, max:30, step:5},
   ],
 };
-CRAFT_MOD_POOL.helm  = CRAFT_MOD_POOL.armor;
-CRAFT_MOD_POOL.boots = CRAFT_MOD_POOL.armor;
+CM.helm=CM.armor; CM.boots=CM.armor;
+function pickMod(slot){const p=CM[slot]||CM.armor;const d=pick(p);const st=Math.floor((d.max-d.min)/d.step);const v=d.min+Math.floor(Math.random()*(st+1))*d.step;return{k:d.k,label:d.f(v),val:v};}
+function m2e(mods){const e={};for(const m of mods){e[m.k]=(e[m.k]||0)+m.val;}return e;}
+function sellVal(item){if(!item)return 0;return({normal:1,magic:4,rare:20,unique:80}[item.rarity]||1)+((item.mods||[]).length)*2;}
+function iScore(it){if(!it?.eff)return 0;const e=it.eff;return(e.physPct||0)*3+(e.hpPct||0)*1.5+(e.armPct||0)+(e.aspdPct||0)*2+(e.critM||0)*.5;}
 
-function pickCraftMod(slot) {
-  const pool = CRAFT_MOD_POOL[slot] || CRAFT_MOD_POOL.armor;
-  const def  = pick(pool);
-  const steps= Math.floor((def.max - def.min) / def.step);
-  const val  = def.min + Math.floor(Math.random() * (steps+1)) * def.step;
-  return {key:def.key, label:def.fmt(val), val};
-}
-function modsToEff(mods){const e={};for(const m of mods){e[m.key]=(e[m.key]||0)+m.val;}return e;}
-
-// ── STATE ───────────────────────────────────────────────────────
-let gs=null, curTab="passive", overlayMode=null;
-let raf=null, lastT=null, combatT=0, regenT=0;
-let invincibleTimer=0;  // ms of post-death invincibility remaining
-// Skill timing
-let skillCD=0;          // ms until next skill fire
-let skillBurstTimer=0;  // for burst hits
-let skillBurstQueue=0;  // extra hits remaining
-let skillBurstDmg=0;
-// Flask timing: per-slot timers
-let flaskTimers=[];  // [ms elapsed since last fire]
-// Active buffs: [{type,val,endAt}]
-let activeBuffs=[];
-// Craft selected item key
-let craftSel=null;
-// Gem selection UI state
-let gemPickMode=null; // null | "main" | "sup0" | "sup1" | "sup2"
+// ── STATE ─────────────────────────────────────────────────────────
+let gs=null,curTab="pass",ovMode=null;
+let raf=null,lastT=null,combatT=0,regenT=0,skillCD=0,invT=0;
+let flT=[],aBuf=[],craftSel=null,invFil="all";
 
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 const ri=(a,b)=>Math.floor(a+Math.random()*(b-a+1));
 const cTot=c=>(c.alt||0)*CURRV.alt+(c.alch||0)*CURRV.alch+(c.chaos||0)*CURRV.chaos+(c.exalt||0)*CURRV.exalt;
-const upgC=(d,lv)=>Math.floor(d.base*Math.pow(d.mult,lv));
-const iScore=it=>{if(!it?.eff)return 0;const e=it.eff;return(e.physPct||0)*3+(e.hpPct||0)*1.5+(e.armPct||0)+(e.aspdPct||0)*2;};
+const upgC=(d,lv)=>Math.floor(d.base*Math.pow(d.m,lv));
 
 function makeInit(ck){
-  const cls=CLASSES[ck];
-  return{
-    classKey:ck, ascKey:null, ascTaken:[], ascPoints:0,
-    level:1, exp:0, expNext:100, passivePoints:0, allocated:[],
-    areaIdx:0, kills:0, totalKills:0, areaClears:0,
-    prestigeLvl:0, prestigePts:0, pUpgrades:{},
-    baseHp:200, baseArm:50, basePhysMin:5, basePhysMax:12, baseAspd:1.2, baseCrit:5, baseCritM:150,
-    upgrades:{u0:0,u1:0,u2:0,u3:0,u4:0,u5:0,u6:0,u7:0,u8:0,u9:0},
-    currency:{alt:0,alch:0,chaos:0,exalt:0},
-    equip:{weapon:null,armor:null,helm:null,boots:null,ring:null},
-    inventory:[], se:cls?cls.se:{},
-    // Gems
-    mainGem:"g_cleave", supGems:[null,null,null],
-    // Flasks: 5 slots, each {defId} or null
-    equippedFlasks:[{defId:"fl_life_s"},{defId:"fl_life_s"},null,null,null],
-    // Computed
-    physMin:5, physMax:12, aspd:1.2, critChance:5, critMulti:150,
-    maxHp:200, hp:200, armor:50, resist:0, leech:0, currMult:1, enemy:null,
+  const c=CLS[ck];
+  return{ck,ascKey:null,ascTaken:[],ascPts:0,
+    lv:1,exp:0,expN:100,pp:0,alloc:[],
+    areaIdx:0,kills:0,totalKills:0,clears:0,
+    presLv:0,presPts:0,pUpg:{},
+    bHp:200,bArm:50,bPmin:5,bPmax:12,bAspd:1.2,bCrit:5,bCritM:150,
+    upg:{u0:0,u1:0,u2:0,u3:0,u4:0,u5:0,u6:0,u7:0,u8:0,u9:0},
+    cur:{alt:0,alch:0,chaos:0,exalt:0},
+    eq:{weapon:null,armor:null,helm:null,boots:null,ring:null},
+    inv:[],se:c?c.se:{},
+    mg:"gc",sg:[null,null,null],
+    fl:[{id:"fl_ls"},{id:"fl_ls"},null,null,null],
+    physMin:5,physMax:12,aspd:1.2,critC:5,critM:150,maxHp:200,hp:200,armor:50,resist:0,leech:0,curMul:1,enemy:null,
   };
 }
 
-// ── RECALC ──────────────────────────────────────────────────────
+// ── RECALC ────────────────────────────────────────────────────────
 function recalc(s){
   let pp=0,ap=0,hp=0,ar=0,res=0,ll=0,cr=0,cm=0,cuM=1,dmM=1,hpM=1,asM=1,cMx=1;
   const se=s.se||{};
   if(se.physPct)pp+=se.physPct;if(se.aspdPct)ap+=se.aspdPct;if(se.hpPct)hp+=se.hpPct;if(se.crit)cr+=se.crit;if(se.critM)cm+=se.critM;
-  for(const id of(s.allocated||[])){const n=PASSIVES.find(x=>x.id===id);if(!n)continue;const e=n.eff;if(e.physPct)pp+=e.physPct;if(e.aspdPct)ap+=e.aspdPct;if(e.hpPct)hp+=e.hpPct;if(e.armPct)ar+=e.armPct;if(e.crit)cr+=e.crit;if(e.critM)cm+=e.critM;if(e.resist)res+=e.resist;if(e.leech)ll+=e.leech;}
-  if(s.ascKey&&s.classKey){const cls=CLASSES[s.classKey];if(cls?.asc[s.ascKey]){const asc=cls.asc[s.ascKey];for(const id of(s.ascTaken||[])){const nd=asc.nodes.find(x=>x.id===id);if(!nd)continue;const e=nd.eff;if(e.physPct)pp+=e.physPct;if(e.aspdPct)ap+=e.aspdPct;if(e.hpPct)hp+=e.hpPct;if(e.armPct)ar+=e.armPct;if(e.crit)cr+=e.crit;if(e.critM)cm+=e.critM;if(e.resist)res+=e.resist;if(e.leech)ll+=e.leech;if(e.currMult)cuM*=e.currMult;if(e.critMx)cMx*=e.critMx;}}}
-  for(const def of UPGRADES){const lv=s.upgrades[def.id]||0;if(!lv)continue;const e=def.eff;if(e.physPct)pp+=e.physPct*lv;if(e.aspdPct)ap+=e.aspdPct*lv;if(e.hpPct)hp+=e.hpPct*lv;if(e.armPct)ar+=e.armPct*lv;if(e.critM)cm+=e.critM*lv;if(e.currMult)cuM*=(1+e.currMult*lv);}
-  for(const it of Object.values(s.equip)){if(!it?.eff)continue;const e=it.eff;if(e.physPct)pp+=e.physPct;if(e.aspdPct)ap+=e.aspdPct;if(e.hpPct)hp+=e.hpPct;if(e.armPct)ar+=e.armPct;if(e.crit)cr+=e.crit;if(e.critM)cm+=e.critM;if(e.resist)res+=e.resist;if(e.leech)ll+=e.leech;if(e.currMult)cuM*=e.currMult;}
-  for(const[id,cnt]of Object.entries(s.pUpgrades||{})){if(!cnt)continue;const pd=PUPS.find(x=>x.id===id);if(!pd)continue;const e=pd.eff;if(e.dmgMult)dmM*=Math.pow(e.dmgMult,cnt);if(e.hpMult)hpM*=Math.pow(e.hpMult,cnt);if(e.aspdMult)asM*=Math.pow(e.aspdMult,cnt);if(e.currMult)cuM*=Math.pow(e.currMult,cnt);if(e.allMult){dmM*=Math.pow(e.allMult,cnt);hpM*=Math.pow(e.allMult,cnt);asM*=Math.pow(e.allMult,cnt);}}
+  for(const id of(s.alloc||[])){const n=PASS.find(x=>x.id===id);if(!n)continue;const e=n.e;if(e.physPct)pp+=e.physPct;if(e.aspdPct)ap+=e.aspdPct;if(e.hpPct)hp+=e.hpPct;if(e.armPct)ar+=e.armPct;if(e.crit)cr+=e.crit;if(e.critM)cm+=e.critM;if(e.resist)res+=e.resist;if(e.leech)ll+=e.leech;}
+  if(s.ascKey&&s.ck){const cls=CLS[s.ck];if(cls?.asc[s.ascKey]){const asc=cls.asc[s.ascKey];for(const id of(s.ascTaken||[])){const nd=asc.nodes.find(x=>x.id===id);if(!nd)continue;const e=nd.e;if(e.physPct)pp+=e.physPct;if(e.aspdPct)ap+=e.aspdPct;if(e.hpPct)hp+=e.hpPct;if(e.armPct)ar+=e.armPct;if(e.crit)cr+=e.crit;if(e.critM)cm+=e.critM;if(e.resist)res+=e.resist;if(e.leech)ll+=e.leech;if(e.currMult)cuM*=e.currMult;if(e.critMx)cMx*=e.critMx;}}}
+  for(const def of UPG){const lv=s.upg[def.id]||0;if(!lv)continue;const e=def.e;if(e.physPct)pp+=e.physPct*lv;if(e.aspdPct)ap+=e.aspdPct*lv;if(e.hpPct)hp+=e.hpPct*lv;if(e.armPct)ar+=e.armPct*lv;if(e.critM)cm+=e.critM*lv;if(e.currMult)cuM*=(1+e.currMult*lv);}
+  for(const it of Object.values(s.eq)){if(!it?.eff)continue;const e=it.eff;if(e.physPct)pp+=e.physPct;if(e.aspdPct)ap+=e.aspdPct;if(e.hpPct)hp+=e.hpPct;if(e.armPct)ar+=e.armPct;if(e.crit)cr+=e.crit;if(e.critM)cm+=e.critM;if(e.resist)res+=e.resist;if(e.leech)ll+=e.leech;if(e.currMult)cuM*=e.currMult;}
+  for(const[id,cnt]of Object.entries(s.pUpg||{})){if(!cnt)continue;const pd=PUPS.find(x=>x.id===id);if(!pd)continue;const e=pd.e;if(e.dmgMult)dmM*=Math.pow(e.dmgMult,cnt);if(e.hpMult)hpM*=Math.pow(e.hpMult,cnt);if(e.aspdMult)asM*=Math.pow(e.aspdMult,cnt);if(e.currMult)cuM*=Math.pow(e.currMult,cnt);if(e.allMult){dmM*=Math.pow(e.allMult,cnt);hpM*=Math.pow(e.allMult,cnt);asM*=Math.pow(e.allMult,cnt);}}
   const pM=(1+pp/100)*dmM;
-  s.physMin=Math.floor(s.basePhysMin*pM); s.physMax=Math.floor(s.basePhysMax*pM);
-  s.aspd=Math.min(s.baseAspd*(1+ap/100)*asM,20);
-  s.critChance=Math.min(s.baseCrit+cr,95); s.critMulti=(s.baseCritM+cm)*cMx;
-  s.maxHp=Math.floor(s.baseHp*(1+hp/100)*hpM); s.hp=Math.min(s.hp>0?s.hp:s.maxHp,s.maxHp);
-  s.armor=Math.floor(s.baseArm*(1+ar/100)); s.resist=Math.min(res,90); s.leech=ll; s.currMult=cuM;
+  s.physMin=Math.floor(s.bPmin*pM);s.physMax=Math.floor(s.bPmax*pM);
+  s.aspd=Math.min(s.bAspd*(1+ap/100)*asM,20);
+  s.critC=Math.min(s.bCrit+cr,95);s.critM=(s.bCritM+cm)*cMx;
+  s.maxHp=Math.floor(s.bHp*(1+hp/100)*hpM);s.hp=Math.min(s.hp>0?s.hp:s.maxHp,s.maxHp);
+  s.armor=Math.floor(s.bArm*(1+ar/100));s.resist=Math.min(res,90);s.leech=ll;s.curMul=cuM;
   return s;
 }
 
-// ── COMPUTED SKILL DPS ──────────────────────────────────────────
-function computeSkillDps(){
+// ── SKILL/FLASK HELPERS ───────────────────────────────────────────
+function skDps(){
   if(!gs)return 0;
-  const mainDef=MAIN_GEMS.find(x=>x.id===gs.mainGem);
-  if(!mainDef)return 0;
-  const avgBase=(gs.physMin+gs.physMax)/2;
-  let dmgM=mainDef.dmgM, hits=mainDef.hits||1, cdMs=mainDef.cd;
-  // Apply buff aspd bonus to CD
-  const aspdBuff=activeBuffs.filter(b=>b.type==="aspd").reduce((s,b)=>s+b.val,0);
-  cdMs=Math.max(100,cdMs/(1+aspdBuff/100));
-  // Apply support gems
-  for(const sid of(gs.supGems||[])){
-    if(!sid)continue;
-    const sup=SUP_GEMS.find(x=>x.id===sid);if(!sup)continue;
-    const m=sup.mod;
-    if(m.dmgMult)dmgM*=m.dmgMult;
-    if(m.extraHits){hits+=m.extraHits;if(m.dmgMult){}/* already applied */}
-    if(m.cdMult)cdMs*=m.cdMult;
-    if(m.bonusDmgPct)dmgM*=(1+m.bonusDmgPct/100);
-    if(m.critBonus){}// handled in crit calc
-  }
-  const critBonus=activeBuffs.filter(b=>b.type==="crit").reduce((s,b)=>s+b.val,0);
-  const crit=Math.min(gs.critChance+critBonus,95)/100;
-  const critMul=gs.critMulti/100;
-  const critFactor=1+crit*(critMul-1);
-  const perHit=avgBase*dmgM*critFactor;
-  const dps=(perHit*hits)/(cdMs/1000);
-  return dps;
+  const md=MG.find(x=>x.id===gs.mg);if(!md)return 0;
+  const avg=(gs.physMin+gs.physMax)/2;
+  let dm=md.dm,hits=md.hits||1,cd=md.cd;
+  for(const sid of(gs.sg||[])){if(!sid)continue;const s=SG.find(x=>x.id===sid);if(!s)continue;const m=s.mod;if(m.dm)dm*=m.dm;if(m.eh)hits+=m.eh;if(m.bp)dm*=(1+m.bp/100);if(m.cd)cd*=m.cd;}
+  const cf=1+(gs.critC/100)*(gs.critM/100-1);
+  return avg*dm*hits*cf/(cd/1000);
 }
-
-// ── SKILL FIRE ──────────────────────────────────────────────────
-function fireSkill(){
-  if(!gs?.enemy)return;
-  const mainDef=MAIN_GEMS.find(x=>x.id===gs.mainGem);
-  if(!mainDef)return;
-  const avgBase=(gs.physMin+gs.physMax)/2;
-  let dmgM=mainDef.dmgM, hits=mainDef.hits||1;
-  let critBonus=0;
-  for(const sid of(gs.supGems||[])){
-    if(!sid)continue;
-    const sup=SUP_GEMS.find(x=>x.id===sid);if(!sup)continue;
-    const m=sup.mod;
-    if(m.dmgMult)dmgM*=m.dmgMult;
-    if(m.extraHits)hits+=m.extraHits;
-    if(m.bonusDmgPct)dmgM*=(1+m.bonusDmgPct/100);
-    if(m.critBonus)critBonus+=m.critBonus;
-    if(m.culling&&gs.enemy&&gs.enemy.hp<=gs.enemy.maxHp*0.1){gs.enemy.hp=0;addLog(`✂ ${mainDef.name}: Culling Strike!`,"skill");return;}
-  }
-  const effCrit=Math.min(gs.critChance+critBonus,95);
-  for(let h=0;h<hits;h++){
-    const isCrit=Math.random()*100<effCrit;
-    let dmg=Math.max(1,Math.floor(avgBase*dmgM*(isCrit?gs.critMulti/100:1)));
-    gs.enemy.hp-=dmg;
-    if(gs.leech>0)gs.hp=Math.min(gs.maxHp,gs.hp+dmg*gs.leech/100);
-    addFloat(fmt(dmg),isCrit?"#88ddff":"#8888ff");
-    if(isCrit)addLog(`✦ ${mainDef.name} CRIT! ${fmt(dmg)}`,"crit");
-    else if(h===0)addLog(`✦ ${mainDef.name}: ${fmt(dmg)}`+(hits>1?` ×${hits}`:""),"skill");
-  }
-}
-
-// ── FLASK FIRE ──────────────────────────────────────────────────
-function fireFlask(slotIdx){
-  if(!gs?.equippedFlasks)return;
-  const fs=gs.equippedFlasks[slotIdx];if(!fs)return;
-  const def=FLASK_DEFS.find(x=>x.id===fs.defId);if(!def)return;
-  const now=performance.now();
-  if(def.type==="life"){
-    const heal=gs.maxHp*(def.healPct/100);
-    gs.hp=Math.min(gs.maxHp,gs.hp+heal);
-    addLog(`🧪 ${def.name}: +${fmt(heal)} HP`,"flask");
-  }else if(def.type==="speed"){
-    activeBuffs=activeBuffs.filter(b=>b.type!=="aspd_flask");
-    activeBuffs.push({type:"aspd_flask",val:def.buffVal,label:`Quicksilver (+${def.buffVal}% Spd)`,color:"#88ddff",endAt:now+def.buffDur});
-    addLog(`⚗ Quicksilver Flask active!`,"flask");
-  }else if(def.type==="armor"){
-    activeBuffs=activeBuffs.filter(b=>b.type!=="armor_flask");
-    activeBuffs.push({type:"armor_flask",val:def.buffVal,label:`Granite (+${def.buffVal} Arm)`,color:"#aaaaaa",endAt:now+def.buffDur});
-    addLog(`🪨 Granite Flask active!`,"flask");
-  }else if(def.type==="crit"){
-    activeBuffs=activeBuffs.filter(b=>b.type!=="crit_flask");
-    activeBuffs.push({type:"crit_flask",val:def.buffVal,label:`Diamond (+${def.buffVal}% Crit)`,color:"#88ffee",endAt:now+def.buffDur});
-    addLog(`💎 Diamond Flask active!`,"flask");
-  }
-  flaskTimers[slotIdx]=0;
-}
-
-// ── SKILL EFFECTIVE CD (with buffs) ─────────────────────────────
-function effectiveSkillCd(){
-  if(!gs)return 1000;
-  const mainDef=MAIN_GEMS.find(x=>x.id===gs.mainGem);
-  if(!mainDef)return 1000;
-  let cd=mainDef.cd;
-  for(const sid of(gs.supGems||[])){const sup=SUP_GEMS.find(x=>x.id===sid);if(sup?.mod.cdMult)cd*=sup.mod.cdMult;}
-  const aspdBuff=activeBuffs.filter(b=>b.type==="aspd_flask").reduce((s,b)=>s+b.val,0);
-  if(aspdBuff>0)cd=cd/(1+aspdBuff/100);
+function effCd(){
+  const md=MG.find(x=>x.id===gs?.mg);if(!md)return 1000;
+  let cd=md.cd;
+  for(const sid of(gs.sg||[])){const s=SG.find(x=>x.id===sid);if(s?.mod.cd)cd*=s.mod.cd;}
+  const ab=aBuf.filter(b=>b.ty==="aspd").reduce((s,b)=>s+b.v,0);
+  if(ab>0)cd=cd/(1+ab/100);
   return Math.max(80,cd);
 }
-
-// ── RESURRECT ──────────────────────────────────────────────────
-function resurrect(){
-  gs.hp=Math.floor(gs.maxHp*0.60);          // 60% HP on resurrect
-  invincibleTimer=4000;                       // 4s invincibility
-  // Immediately fire all life flasks
-  for(let i=0;i<FLASK_SLOTS;i++){
-    const fs=(gs.equippedFlasks||[])[i];if(!fs)continue;
-    const def=FLASK_DEFS.find(x=>x.id===fs.defId);
-    if(def?.type==="life"){flaskTimers[i]=def.interval;}  // trigger immediately next tick
+function fireSkill(){
+  if(!gs?.enemy)return;
+  const md=MG.find(x=>x.id===gs.mg);if(!md)return;
+  const avg=(gs.physMin+gs.physMax)/2;
+  let dm=md.dm,hits=md.hits||1,cb=0;
+  for(const sid of(gs.sg||[])){if(!sid)continue;const s=SG.find(x=>x.id===sid);if(!s)continue;const m=s.mod;if(m.dm)dm*=m.dm;if(m.eh)hits+=m.eh;if(m.bp)dm*=(1+m.bp/100);if(m.cb)cb+=m.cb;if(m.cu&&gs.enemy.hp<=gs.enemy.maxHp*.10){gs.enemy.hp=0;addLog(`✂ ${md.name}: Culling Strike!`,"skill");return;}}
+  const ec=Math.min(gs.critC+cb,95);
+  for(let h=0;h<hits;h++){
+    const isCrit=Math.random()*100<ec;
+    let d=Math.max(1,Math.floor(avg*dm*(isCrit?gs.critM/100:1)));
+    gs.enemy.hp-=d;
+    if(gs.leech>0)gs.hp=Math.min(gs.maxHp,gs.hp+d*gs.leech/100);
+    addFloat(fmt(d),isCrit?"#88ddff":"#8888ff");
+    if(isCrit&&h===0)addLog(`✦ ${md.name} CRIT! ${fmt(d)}`+(hits>1?` ×${hits}`:""),"crit");
+    else if(h===0)addLog(`✦ ${md.name}: ${fmt(d)}`+(hits>1?` ×${hits}`:""),"skill");
   }
-  // NOTE: boss HP is NOT reset - progress is kept
-  addLog("💀 Defeated... Resurrected (4s invincible, boss HP kept)","level");
-  showNotif("Resurrected","#88aaff");
+}
+function fireFlask(i){
+  const fs=(gs?.fl||[])[i];if(!fs)return;
+  const d=FL.find(x=>x.id===fs.id);if(!d)return;
+  flT[i]=0;const now=performance.now();
+  if(d.ty==="life"){const h=gs.maxHp*(d.hp/100);gs.hp=Math.min(gs.maxHp,gs.hp+h);addLog(`🧪 ${d.name}: +${fmt(h)} HP`,"flask");}
+  else if(d.ty==="spd"){aBuf=aBuf.filter(b=>b.ty!=="aspd");aBuf.push({ty:"aspd",v:d.bv,label:`Quicksilver (+${d.bv}% Spd)`,col:"#88ddff",endAt:now+d.bd});}
+  else if(d.ty==="arm"){aBuf=aBuf.filter(b=>b.ty!=="arm_fl");aBuf.push({ty:"arm_fl",v:d.bv,label:`Granite (+${d.bv} Arm)`,col:"#aaaaaa",endAt:now+d.bd});}
+  else if(d.ty==="crit"){aBuf=aBuf.filter(b=>b.ty!=="crit_fl");aBuf.push({ty:"crit_fl",v:d.bv,label:`Diamond (+${d.bv}% Crit)`,col:"#88ffee",endAt:now+d.bd});}
 }
 
+// ── RESURRECT / BOSS DEATH ────────────────────────────────────────
+function resurrect(){
+  gs.hp=Math.floor(gs.maxHp*.60);invT=4000;
+  for(let i=0;i<FLS;i++){const fs=(gs.fl||[])[i];if(!fs)continue;const d=FL.find(x=>x.id===fs.id);if(d?.ty==="life")flT[i]=d.iv;}
+  addLog("💀 Defeated... Resurrected (4s invincible)","level");
+}
+function bossDeath(){
+  const area=AREAS[Math.min(gs.areaIdx,AREAS.length-1)];
+  addLog(`💀 Slain by ${gs.enemy?.name||"boss"}! Returning to start of ${area.name}...`,"bossdeath");
+  showNotif(`Boss killed you — back to ${area.name}!`,"#ff6644");
+  gs.kills=0;gs.hp=Math.floor(gs.maxHp*.70);invT=4000;
+  for(let i=0;i<FLS;i++){const fs=(gs.fl||[])[i];if(!fs)continue;const d=FL.find(x=>x.id===fs.id);if(d?.ty==="life")flT[i]=d.iv;}
+  gs.enemy=genEnemy(area,area.kills);
+}
 
+// ── GAME LOOP ─────────────────────────────────────────────────────
 function tick(ts){
-  if(!lastT)lastT=ts;
-  const dt=Math.min(ts-lastT,200);lastT=ts;
+  if(!lastT)lastT=ts;const dt=Math.min(ts-lastT,200);lastT=ts;
   if(!gs?.enemy){raf=requestAnimationFrame(tick);return;}
-
-  // Expire buffs
   const now=performance.now();
-  activeBuffs=activeBuffs.filter(b=>b.endAt>now);
-
-  // Invincibility countdown
-  if(invincibleTimer>0)invincibleTimer=Math.max(0,invincibleTimer-dt);
-
-  // Regen
-  regenT+=dt;
-  if(regenT>=500){regenT-=500;gs.hp=Math.min(gs.maxHp,gs.hp+gs.maxHp*.008);}
-
-  // Skill
+  aBuf=aBuf.filter(b=>b.endAt>now);
+  if(invT>0)invT=Math.max(0,invT-dt);
+  regenT+=dt;if(regenT>=500){regenT-=500;gs.hp=Math.min(gs.maxHp,gs.hp+gs.maxHp*.01);}
   skillCD=Math.max(0,skillCD-dt);
-  if(skillCD<=0){
-    skillCD=effectiveSkillCd();
-    fireSkill();
+  if(skillCD<=0){skillCD=effCd();fireSkill();}
+  if(!flT.length)flT=Array(FLS).fill(99999);
+  for(let i=0;i<FLS;i++){
+    const fs=(gs.fl||[])[i];if(!fs)continue;
+    const d=FL.find(x=>x.id===fs.id);if(!d)continue;
+    flT[i]=(flT[i]||0)+dt;if(flT[i]>=d.iv)fireFlask(i);
   }
-
-  // Flasks (timed auto)
-  if(!flaskTimers.length)flaskTimers=Array(FLASK_SLOTS).fill(99999);
-  for(let i=0;i<FLASK_SLOTS;i++){
-    const fs=(gs.equippedFlasks||[])[i];if(!fs)continue;
-    const def=FLASK_DEFS.find(x=>x.id===fs.defId);if(!def)continue;
-    flaskTimers[i]=(flaskTimers[i]||0)+dt;
-    if(flaskTimers[i]>=def.interval)fireFlask(i);
-  }
-
-  // Base auto-attack (DPS display / enemy damage)
-  combatT+=dt;
-  const ai=1000/gs.aspd;
+  combatT+=dt;const ai=1000/gs.aspd;
   if(combatT>=ai){
     combatT-=ai;
     const bD=gs.physMin+Math.random()*(gs.physMax-gs.physMin);
-    const isCrit=Math.random()*100<gs.critChance;
-    let dmg=Math.max(1,Math.floor(isCrit?bD*(gs.critMulti/100):bD));
-    gs.enemy.hp-=dmg;
-    if(gs.leech>0)gs.hp=Math.min(gs.maxHp,gs.hp+dmg*gs.leech/100);
+    const isCrit=Math.random()*100<gs.critC;
+    let dmg=Math.max(1,Math.floor(isCrit?bD*(gs.critM/100):bD));
+    gs.enemy.hp-=dmg;if(gs.leech>0)gs.hp=Math.min(gs.maxHp,gs.hp+dmg*gs.leech/100);
     addFloat(fmt(dmg),isCrit?"#ffcc44":"#c0c0c0");
     if(isCrit)addLog(`CRIT! ${gs.enemy.name} — ${fmt(dmg)}`,"crit");
     else addLog(`Hit ${gs.enemy.name} for ${fmt(dmg)}`,"hit");
-    const flaskArm=activeBuffs.filter(b=>b.type==="armor_flask").reduce((s,b)=>s+b.val,0);
-    const mit=Math.min(0.92,(gs.armor+flaskArm)/((gs.armor+flaskArm)+500));
-    const rMit=Math.min(0.75,gs.resist/100);
-    const eDmg=Math.max(1,Math.floor(gs.enemy.dmg*(1-mit)*(1-rMit)));
-    // Grace period: boss doesn't attack for first N ms of the encounter
     if(gs.enemy.grace>0){gs.enemy.grace=Math.max(0,gs.enemy.grace-ai);}
-    else if(invincibleTimer<=0){gs.hp=Math.max(0,gs.hp-eDmg);}
-    if(gs.enemy.mods.includes("Regen"))gs.enemy.hp=Math.min(gs.enemy.maxHp,gs.enemy.hp+eDmg*.2);
+    else if(invT<=0){
+      const fa=aBuf.filter(b=>b.ty==="arm_fl").reduce((s,b)=>s+b.v,0);
+      const ea=gs.armor+fa;const mit=Math.min(0.92,ea/(ea+500));
+      const rMit=Math.min(0.75,gs.resist/100);
+      const ed=Math.max(1,Math.floor(gs.enemy.dmg*(1-mit)*(1-rMit)));
+      gs.hp=Math.max(0,gs.hp-ed);
+      if(gs.enemy.mods.includes("Regen"))gs.enemy.hp=Math.min(gs.enemy.maxHp,gs.enemy.hp+gs.enemy.dmg*.1);
+    }
     if(gs.enemy.hp<=0)onKill();
-    else if(gs.hp<=0)resurrect();
+    else if(gs.hp<=0){if(gs.enemy.rarity==="boss")bossDeath();else resurrect();}
   }
-
-  updateUI();
-  renderSkillFlaskBar();
-  renderBuffStrip();
-  raf=requestAnimationFrame(tick);
+  updateUI();renderSF();renderBufStrip();raf=requestAnimationFrame(tick);
 }
 
 function genEnemy(area,kl){
-  const pm=Math.pow(2.5,gs.prestigeLvl||0);
+  const pm=Math.pow(2.5,gs.presLv||0);
   if(kl<=1)return{name:pick(BPOOL),rarity:"boss",maxHp:area.hp*5*pm,hp:area.hp*5*pm,dmg:area.dmg*1.5*pm,mods:["BOSS"],grace:3000};
-  const r=Math.random();const rarity=r<.03?"rare":r<.2?"magic":"normal";
-  const rH=rarity==="magic"?5:rarity==="rare"?12:1;
-  const mods=rarity==="rare"?[pick(["Burning","Frozen","Empowered"]),pick(["Regen","Barrier"])]:rarity==="magic"?[pick(["Burning","Frozen"])]:[];
+  const r=Math.random();const rar=r<.03?"rare":r<.2?"magic":"normal";
+  const rH=rar==="magic"?5:rar==="rare"?12:1;
+  const mods=rar==="rare"?[pick(["Burning","Frozen","Empowered"]),pick(["Regen","Barrier"])]:rar==="magic"?[pick(["Burning","Frozen"])]:[];
   const base=pick(EPOOL);
-  const name=rarity==="rare"?`${pick(PRE)} ${base} ${pick(SUF)}`:rarity==="magic"?`Mutant ${base}`:base;
-  return{name,rarity,maxHp:area.hp*rH*pm,hp:area.hp*rH*pm,dmg:area.dmg*(rarity==="rare"?1.8:rarity==="magic"?1.3:1)*pm,mods};
+  const name=rar==="rare"?`${pick(PRE)} ${base} ${pick(SUF)}`:rar==="magic"?`Mutant ${base}`:base;
+  return{name,rarity:rar,maxHp:area.hp*rH*pm,hp:area.hp*rH*pm,dmg:area.dmg*(rar==="rare"?1.8:rar==="magic"?1.3:1)*pm,mods};
 }
 function genItem(tier,rarOvr){
-  const mult=1+(gs.prestigeLvl||0)*0.6;
-  if(rarOvr==="unique"||Math.random()<.012){const u=pick(UNIQ);const eff={};for(const[k,v]of Object.entries(u.eff))eff[k]=v*mult;return{...u,rarity:"unique",eff,mods:[]};}
-  const rarity=rarOvr||(Math.random()<.07?"rare":Math.random()<.25?"magic":"normal");
+  const mul=1+(gs.presLv||0)*0.6;
+  if(rarOvr==="unique"||Math.random()<.012){const u=pick(UNIQ);const eff={};for(const[k,v]of Object.entries(u.eff))eff[k]=v*mul;return{...u,rarity:"unique",eff,mods:[]};}
+  const rar=rarOvr||(Math.random()<.07?"rare":Math.random()<.25?"magic":"normal");
   const slot=pick(SLOTS);const base=pick(SBASES[slot]);
-  const pB=Math.floor((tier*12+ri(10,40))*mult*(rarity==="rare"?1.8:1));
-  const hB=Math.floor((tier*15+ri(15,50))*mult*(rarity==="rare"?1.8:1));
   let name,stats=[],eff={},mods=[];
-  if(rarity==="normal"){name=base;}
-  else if(rarity==="magic"){
-    name=`${pick(PRE)} ${base}`;
-    const m=pickCraftMod(slot);mods=[m];eff=modsToEff(mods);stats=mods.map(x=>x.label);
-  }else{
-    name=`${pick(PRE)} ${base} ${pick(SUF)}`;
-    const count=3+Math.floor(Math.random()*2);
-    for(let i=0;i<count;i++)mods.push(pickCraftMod(slot));
-    eff=modsToEff(mods);stats=mods.map(x=>x.label);
-  }
-  return{name,slot,rarity,stats,eff,mods};
+  if(rar==="normal"){name=base;}
+  else if(rar==="magic"){name=`${pick(PRE)} ${base}`;const m=pickMod(slot);mods=[m];eff=m2e(mods);stats=mods.map(x=>x.label);}
+  else{name=`${pick(PRE)} ${base} ${pick(SUF)}`;const cnt=3+Math.floor(Math.random()*2);for(let i=0;i<cnt;i++)mods.push(pickMod(slot));eff=m2e(mods);stats=mods.map(x=>x.label);}
+  return{name,slot,rarity:rar,stats,eff,mods};
 }
 
+// ── ON KILL ───────────────────────────────────────────────────────
 function onKill(){
   const area=AREAS[Math.min(gs.areaIdx,AREAS.length-1)];
-  gs.kills++;gs.totalKills++;addLog(`Slew ${gs.enemy.name}!`,"kill");
+  gs.kills++;gs.totalKills++;addLog(`✓ Slew ${gs.enemy.name}!`,"kill");
   const eg=Math.floor((15+area.t*8)*(gs.enemy.rarity==="boss"?30:gs.enemy.rarity==="rare"?8:gs.enemy.rarity==="magic"?3:1));
   gs.exp+=eg;
-  while(gs.exp>=gs.expNext){
-    gs.exp-=gs.expNext;gs.level++;gs.passivePoints++;
-    gs.baseHp=Math.floor(gs.baseHp*1.08);gs.baseArm=Math.floor(gs.baseArm*1.05);
-    gs.expNext=Math.floor(100*Math.pow(1.22,gs.level-1));
-    addLog(`Level Up! Lv.${gs.level} — Passive point!`,"level");
-    showNotif(`LEVEL UP  Lv.${gs.level}`,"#88aaff");
-    recalc(gs);
-  }
+  while(gs.exp>=gs.expN){gs.exp-=gs.expN;gs.lv++;gs.pp++;gs.bHp=Math.floor(gs.bHp*1.08);gs.bArm=Math.floor(gs.bArm*1.05);gs.expN=Math.floor(100*Math.pow(1.22,gs.lv-1));addLog(`⬆ Level Up! Lv.${gs.lv} — Passive point!`,"level");showNotif(`LEVEL UP  Lv.${gs.lv}`,"#88aaff");recalc(gs);}
   const ct=CURRD.reduce((a,c)=>a+c.w,0);let cr=Math.random()*ct,cc=0;
-  for(const c of CURRD){cc+=c.w;if(cr<cc){if(Math.random()<.4||gs.enemy.rarity!=="normal"){const qty=gs.enemy.rarity==="boss"?ri(3,10):1;const mult=Math.max(1,Math.floor(gs.currMult));const tot=qty*mult;gs.currency[c.id]+=tot;addLog(`${c.name} x${tot}`+(mult>1?` (x${mult})`:""),"currency");}break;}}
+  for(const c of CURRD){cc+=c.w;if(cr<cc){if(Math.random()<.4||gs.enemy.rarity!=="normal"){const qty=gs.enemy.rarity==="boss"?ri(3,10):1;const mul=Math.max(1,Math.floor(gs.curMul));const tot=qty*mul;gs.cur[c.id]+=tot;addLog(`${c.name} ×${tot}`+(mul>1?` (×${mul})`:""),"currency");}break;}}
   const ir=Math.random();const dr=gs.enemy.rarity==="boss"?(Math.random()<.2?"unique":"rare"):ir<.012?"unique":ir<.08?"rare":ir<.3?"magic":ir<.55?"normal":null;
   if(dr){
-    const item=genItem(area.t,dr);const cs=iScore(gs.equip[item.slot]);const ns=iScore(item);
-    if(ns>cs){if(gs.equip[item.slot])gs.inventory.push(gs.equip[item.slot]);gs.equip[item.slot]=item;addLog(`Auto-equipped ${item.name}!`,"kill");recalc(gs);}
-    else{gs.inventory.push(item);if(gs.inventory.length>20)gs.inventory.shift();}
-    if(item.rarity==="unique"){addLog(`UNIQUE FOUND: ${item.name}`,"unique");showNotif(item.name,RCOL.unique);}
-    else if(item.rarity!=="normal")addLog(`${item.rarity==="rare"?"★":"◆"} ${item.name}`,"drop");
-    if(curTab==="inventory")renderTab();
+    const item=genItem(area.t,dr);
+    if(iScore(item)>iScore(gs.eq[item.slot])){if(gs.eq[item.slot])gs.inv.push(gs.eq[item.slot]);gs.eq[item.slot]=item;addLog(`🛡 Auto-equipped ${item.name}!`,"kill");recalc(gs);}
+    else{gs.inv.push(item);if(gs.inv.length>24)gs.inv.shift();}
+    if(item.rarity==="unique"){addLog(`✨ UNIQUE: ${item.name}`,"unique");showNotif(item.name,RCOL.unique);}
+    else if(item.rarity!=="normal")addLog(`🎁 ${item.rarity==="rare"?"★":"◆"} ${item.name}`,"drop");
+    if(curTab==="loot")renderTab();
   }
-  if(gs.areaIdx>=AREAS.length-1&&gs.kills>=area.kills){gs.prestigePts++;addLog("Max area looped! +1 Prestige Point!","prestige");showNotif("+1 Prestige Pt","#ee88ee");}
+  if(gs.areaIdx>=AREAS.length-1&&gs.kills>=area.kills){gs.presPts++;addLog("🏆 Max area looped! +1 Prestige Point!","prestige");showNotif("+1 Prestige Pt","#ee88ee");}
   if(gs.kills>=area.kills){
-    gs.kills=0;gs.areaClears=(gs.areaClears||0)+1;
-    if(gs.areaClears%10===0){gs.ascPoints=(gs.ascPoints||0)+1;addLog(`Labyrinth cleared! Ascendancy Point! (${gs.ascPoints} total)`,"asc");showNotif("ASCENDANCY POINT!","#f0b030");updateAscBtn();}
+    gs.kills=0;gs.clears=(gs.clears||0)+1;
+    if(gs.clears%10===0){gs.ascPts=(gs.ascPts||0)+1;addLog(`🏛 Labyrinth cleared! Ascendancy Pt! (${gs.ascPts})`,"asc");showNotif("ASCENDANCY POINT!","#f0b030");updAscBtn();}
     const next=Math.min(gs.areaIdx+1,AREAS.length-1);
-    if(next!==gs.areaIdx){addLog(`Cleared "${area.name}" — ${AREAS[next].name} T${AREAS[next].t}`,"area");showNotif(`T${AREAS[next].t} ${AREAS[next].name}`,"#c89028");}
+    if(next!==gs.areaIdx){addLog(`🗺 Cleared "${area.name}" → ${AREAS[next].name} T${AREAS[next].t}`,"area");showNotif(`T${AREAS[next].t} ${AREAS[next].name}`,"#c89028");}
     gs.areaIdx=next;gs.enemy=genEnemy(AREAS[next],AREAS[next].kills);
   }else{gs.enemy=genEnemy(area,area.kills-gs.kills);}
-  if(gs.hp<=0){resurrect();}
-  sched();
+  if(gs.hp<=0)resurrect();sched();
 }
 
-// ── LOG / NOTIF / FLOAT ─────────────────────────────────────────
-function addLog(text,cls="hit"){const d=document.createElement("div");d.className="ll"+(cls==="area"?" area":"");d.style.color=LCOL[cls]||LCOL.hit;d.textContent=text;const l=document.getElementById("log");if(l){l.insertBefore(d,l.firstChild);while(l.children.length>80)l.removeChild(l.lastChild);}}
-function showNotif(text,color){const d=document.createElement("div");d.className="notif";d.style.border=`1px solid ${color}`;d.style.color=color;d.textContent=text;const n=document.getElementById("notifarea");if(n)n.appendChild(d);setTimeout(()=>{try{d.remove();}catch(e){}},2200);}
-function addFloat(text,color){const fa=document.getElementById("floatarea");const eb=document.getElementById("ebox");if(!fa||!eb)return;const rr=fa.getBoundingClientRect();const er=eb.getBoundingClientRect();const x=er.left-rr.left+er.width/2;const y=er.top-rr.top+14;const d=document.createElement("div");d.className="fdmg";d.style.cssText=`color:${color};left:${x}px;top:${y}px`;d.textContent=text;fa.appendChild(d);setTimeout(()=>{try{d.remove();}catch(e){}},900);}
+// ── LOG / NOTIF / FLOAT ───────────────────────────────────────────
+function addLog(text,cls="hit"){const d=document.createElement("div");d.className="ll"+(cls==="area"?" ar":"")+(cls==="bossdeath"?" bd":"");d.style.color=LCOL[cls]||LCOL.hit;d.textContent=text;const l=document.getElementById("log");if(l){l.insertBefore(d,l.firstChild);while(l.children.length>100)l.removeChild(l.lastChild);}}
+function showNotif(text,color){const d=document.createElement("div");d.className="notif";d.style.border=`1px solid ${color}`;d.style.color=color;d.textContent=text;const n=document.getElementById("na");if(n)n.appendChild(d);setTimeout(()=>{try{d.remove();}catch(e){}},2500);}
+function addFloat(text,color){const fa=document.getElementById("fa");const eb=document.getElementById("ebox");if(!fa||!eb)return;const rr=fa.getBoundingClientRect();const er=eb.getBoundingClientRect();const x=er.left-rr.left+er.width/2+ri(-25,25);const y=er.top-rr.top+12;const d=document.createElement("div");d.className="fdmg";d.style.cssText=`color:${color};left:${x}px;top:${y}px`;d.textContent=text;fa.appendChild(d);setTimeout(()=>{try{d.remove();}catch(e){}},900);}
 
-// ── UI RENDER ───────────────────────────────────────────────────
+// ── UI UPDATE ──────────────────────────────────────────────────────
 function updateUI(){
   const area=AREAS[Math.min(gs.areaIdx,AREAS.length-1)];
-  const dps=computeSkillDps()+(gs.physMin+gs.physMax)/2*gs.aspd*(1+(gs.critChance/100)*(gs.critMulti/100-1));
-  const ct=cTot(gs.currency);
-  document.getElementById("hlv").textContent=gs.level;
+  const dps=skDps()+(gs.physMin+gs.physMax)/2*gs.aspd*(1+(gs.critC/100)*(gs.critM/100-1));
+  const ct=cTot(gs.cur);
+  document.getElementById("hlv").textContent=gs.lv;
   document.getElementById("hdps").textContent=fmt(dps)+"/s";
   document.getElementById("hkills").textContent=fmt(gs.totalKills);
-  document.getElementById("hpres").textContent=gs.prestigeLvl||0;
+  document.getElementById("hpres").textContent=gs.presLv||0;
   document.getElementById("harea").textContent=`${area.name} T${area.t}`;
-  document.getElementById("hpp").textContent=gs.prestigePts||0;
-  document.getElementById("xpf").style.width=Math.min(100,gs.exp/gs.expNext*100)+"%";
-  document.getElementById("xpt").textContent=`${fmt(gs.exp)}/${fmt(gs.expNext)}`;
-  const pb=document.getElementById("pbtn");if(pb)pb.style.display=(gs.prestigePts||0)>0?"block":"none";
+  document.getElementById("hpp").textContent=gs.presPts||0;
+  document.getElementById("xpf").style.width=Math.min(100,gs.exp/gs.expN*100)+"%";
+  document.getElementById("xpt").textContent=`${fmt(gs.exp)} / ${fmt(gs.expN)} EXP`;
+  const pb=document.getElementById("pbtn");if(pb)pb.style.display=(gs.presPts||0)>0?"block":"none";
   const hpPct=Math.max(0,gs.hp/gs.maxHp*100);
   document.getElementById("hpbar").style.width=hpPct+"%";
-  document.getElementById("hptxt").textContent=`${fmt(Math.floor(gs.hp))}/${fmt(gs.maxHp)}`;
-  document.getElementById("sdmg").textContent=`${fmt(gs.physMin)}-${fmt(gs.physMax)}`;
-  document.getElementById("sdps").textContent=fmt(computeSkillDps())+"/s";
+  document.getElementById("hptx").textContent=`${fmt(Math.floor(gs.hp))} / ${fmt(gs.maxHp)}`;
+  const hpbg=document.getElementById("hpbg");if(hpbg)hpbg.className=invT>0?"inv":"";
+  document.getElementById("sdmg").textContent=`${fmt(gs.physMin)}–${fmt(gs.physMax)}`;
+  document.getElementById("sdps").textContent=fmt(skDps())+"/s";
   document.getElementById("saspd").textContent=gs.aspd.toFixed(2)+"/s";
-  document.getElementById("scrit").textContent=`${gs.critChance.toFixed(0)}%/${gs.critMulti.toFixed(0)}%`;
+  document.getElementById("scrit").textContent=`${gs.critC.toFixed(0)}% / ${gs.critM.toFixed(0)}%`;
   document.getElementById("sarm").textContent=fmt(gs.armor);
+  document.getElementById("sres").textContent=`${gs.resist.toFixed(0)}%`;
+  document.getElementById("slch").textContent=`${gs.leech.toFixed(1)}%`;
   document.getElementById("scurr").textContent=fmt(ct);
-  document.getElementById("scmult").textContent=`x${(gs.currMult||1).toFixed(1)}`;
-  if(gs.classKey){const cls=CLASSES[gs.classKey];const bd=document.getElementById("cbadge");if(bd){bd.style.display="block";bd.style.color=cls.color;bd.style.borderColor=cls.color+"88";bd.style.background=cls.color+"11";bd.textContent=`${cls.ico} ${cls.name}`;}if(gs.ascKey){const asc=cls.asc[gs.ascKey];const ai=document.getElementById("ainfo");if(ai)ai.style.display="block";const an=document.getElementById("aname");if(an){an.textContent=asc.name;an.style.color=asc.color;}const at=document.getElementById("ataken");if(at)at.textContent=gs.ascTaken.length>0?gs.ascTaken.map(id=>asc.nodes.find(n=>n.id===id)?.name||id).join(", "):"No nodes taken yet";}}
-  const eq=document.getElementById("eqslots");if(eq){eq.innerHTML="";for(const slot of SLOTS){const it=gs.equip[slot];const d=document.createElement("div");d.className="eqs";d.style.borderColor=it?RCOL[it.rarity]+"77":"#2c2015";d.innerHTML=`<div class="eqsl">${SLOTL[slot]}</div><div class="eqsi" style="color:${it?RCOL[it.rarity]:"#2c2015"}">${it?it.name.slice(0,22)+(it.name.length>22?"...":""):"—"}</div>`;eq.appendChild(d);}}
-  const cg=document.getElementById("currgrid");if(cg){cg.innerHTML="";for(const c of CURRD){const d=document.createElement("div");d.className="ci";d.innerHTML=`<div class="cion" style="color:${c.c};border-color:${c.c};background:${c.c}22">${c.s[0]}</div><div><div style="font-size:8px;color:#786855">${c.s}</div><div style="font-size:10px;font-weight:bold;color:#a89878">${fmt(gs.currency[c.id])}</div></div>`;cg.appendChild(d);}}
+  document.getElementById("scmul").textContent=`×${(gs.curMul||1).toFixed(1)}`;
+  // Badges
+  if(gs.ck){const c=CLS[gs.ck];const bd=document.getElementById("badges");if(bd){bd.innerHTML=`<div class="badge" style="color:${c.col};border-color:${c.col}88;background:${c.col}11">${c.ico} ${c.name}</div>`;if(gs.ascKey){const a=c.asc[gs.ascKey];bd.innerHTML+=`<div class="badge" style="color:${a.col};border-color:${a.col}88;background:${a.col}11">${a.name}</div>`;}}if(gs.ascKey){const a=CLS[gs.ck].asc[gs.ascKey];const ai=document.getElementById("ainfo");if(ai)ai.style.display="block";const an=document.getElementById("an");if(an){an.textContent=a.name;an.style.color=a.col;}const at=document.getElementById("atk");if(at)at.textContent=gs.ascTaken.length>0?gs.ascTaken.map(id=>a.nodes.find(n=>n.id===id)?.n||id).join(", "):"No nodes taken";}}
+  // Equipment
+  const eq=document.getElementById("eqslots");
+  if(eq){eq.innerHTML="";const rows=[[["weapon","armor"]],[["helm","boots","ring"]]];for(const rowGroup of rows){const rw=document.createElement("div");rw.className="eq-row";for(const sl of rowGroup[0]){const it=gs.eq[sl];const d=document.createElement("div");d.className="eq-slot";d.style.borderColor=it?RCOL[it.rarity]+"77":"#2c2015";d.onclick=()=>{setTab("craft");craftSel="eq:"+sl;renderTab();};d.innerHTML=`<div class="esl">${SLOTL[sl]}</div><div class="esn" style="color:${it?RCOL[it.rarity]:"#2c2015"}">${it?it.name.slice(0,18)+(it.name.length>18?"…":""):"—"}</div>`;rw.appendChild(d);}eq.appendChild(rw);}}
+  // Currency
+  const cg=document.getElementById("currgrid");if(cg){cg.innerHTML="";for(const c of CURRD){const d=document.createElement("div");d.className="ci";d.innerHTML=`<div class="cion" style="color:${c.c};border-color:${c.c};background:${c.c}22">${c.s[0]}</div><div><div style="font-size:9px;color:#786855">${c.s}</div><div class="cv">${fmt(gs.cur[c.id])}</div></div>`;cg.appendChild(d);}}
+  // Map
   document.getElementById("mtbadge").textContent=`T${area.t} MAP`;
   document.getElementById("mpf").style.width=(gs.kills/area.kills*100)+"%";
   document.getElementById("mkc").textContent=gs.kills;document.getElementById("mkt").textContent=area.kills;
+  // Enemy
   if(gs.enemy){
     const eb=document.getElementById("ebox");eb.className=gs.enemy.rarity==="boss"?"boss":"";
-    const ne=document.getElementById("ename");ne.textContent=gs.enemy.name;ne.style.color=RCOL[gs.enemy.rarity]||RCOL.normal;
-    document.getElementById("emods").innerHTML=gs.enemy.mods.map(m=>`<span class="emod">${m}</span>`).join("");
+    const ne=document.getElementById("ename");ne.textContent=gs.enemy.name;ne.style.color=RCOL[gs.enemy.rarity]||RCOL.normal;ne.style.fontSize=gs.enemy.rarity==="boss"?"17px":"16px";
+    document.getElementById("emods").innerHTML=gs.enemy.mods.map(m=>`<span class="emod${gs.enemy.rarity==="boss"?" b":""}">${m}</span>`).join("");
     const eH=Math.max(0,gs.enemy.hp/gs.enemy.maxHp*100);
     document.getElementById("ehpf").style.width=eH+"%";
     document.getElementById("ehpt").textContent=`${fmt(Math.max(0,Math.floor(gs.enemy.hp)))} / ${fmt(gs.enemy.maxHp)}`;
   }
 }
+function updAscBtn(){const btn=document.getElementById("ascbtn");if(!btn)return;const has=(gs.ascPts||0)>0;btn.disabled=!has;btn.textContent=has?`ASCENDANCY (${gs.ascPts}pt)`:"ASCENDANCY (clear 10 areas)";}
 
-function renderSkillFlaskBar(){
-  // Main gem
-  const mg=document.getElementById("main-gem-slot");
-  if(mg){
-    const mainDef=gs?MAIN_GEMS.find(x=>x.id===gs.mainGem):null;
-    const cdPct=mainDef?Math.max(0,1-skillCD/effectiveSkillCd())*100:0;
-    mg.innerHTML=`<div class="sk-gem${mainDef?" active":""}${!mainDef?" empty-gem":""}" title="${mainDef?mainDef.name+"\n"+mainDef.desc:"No skill"}" onclick="setTab('skills')">
-      <div class="gico">${mainDef?mainDef.ico:"?"}</div>
-      <div class="gname">${mainDef?mainDef.name:"Skill"}</div>
-      <div class="gcd" style="width:${cdPct}%;background:${mainDef?mainDef.color:"#c89028"}"></div>
-    </div>`;
-  }
-  // Support gems
-  const sg=document.getElementById("sup-gem-slots");
-  if(sg){
-    sg.innerHTML="";
-    for(let i=0;i<3;i++){
-      const sid=gs?.supGems?.[i];
-      const sup=sid?SUP_GEMS.find(x=>x.id===sid):null;
-      const d=document.createElement("div");
-      d.className=`sup-gem${sup?" active":""} ${!sup?"empty-sup":""}`;
-      d.title=sup?`${sup.name}\n${sup.desc}`:`Support gem slot ${i+1}`;
-      d.textContent=sup?sup.ico:"○";
-      d.onclick=()=>setTab("skills");
-      sg.appendChild(d);
-    }
-  }
-  // Flasks
-  const fc=document.getElementById("flask-slots");
-  if(fc){
-    fc.innerHTML="";
-    for(let i=0;i<FLASK_SLOTS;i++){
-      const fs=gs?.equippedFlasks?.[i];
-      const def=fs?FLASK_DEFS.find(x=>x.id===fs.defId):null;
-      const elapsed=flaskTimers[i]||0;
-      const pct=def?Math.min(100,(elapsed/def.interval)*100):0;
-      const d=document.createElement("div");
-      d.className=`fl-slot${def?" has-flask":""}${pct>=100?" fl-active":""}${!def?" empty-fl":""}`;
-      d.title=def?`${def.name}\nAuto-fires every ${def.interval/1000}s\nProgress: ${Math.floor(pct)}%`:`Empty flask slot`;
-      d.innerHTML=def?`<div class="fln">${def.ico}</div><div class="flname">${def.name}</div><div class="flcd"><div class="flcdf" style="width:${pct}%"></div></div>`:`<div style="font-size:9px;color:#2c2015">+</div>`;
-      d.onclick=()=>setTab("craft");
-      fc.appendChild(d);
-    }
-  }
+function renderSF(){
+  const mg=document.getElementById("mgs");
+  if(mg){const md=gs?MG.find(x=>x.id===gs.mg):null;const pct=md?Math.max(0,1-skillCD/effCd())*100:0;mg.innerHTML=`<div class="skgem${md?" on":""}" title="${md?md.name+"\n"+md.desc:"No skill"}" onclick="setTab('gems')"><div class="gi">${md?md.ico:"?"}</div><div class="gn">${md?md.name:"Skill"}</div><div class="gcd" style="width:${pct}%;background:${md?md.col:"#c89028"}"></div></div>`;}
+  const sg=document.getElementById("sgs");
+  if(sg){sg.innerHTML="";for(let i=0;i<3;i++){const sid=gs?.sg?.[i];const s=sid?SG.find(x=>x.id===sid):null;const d=document.createElement("div");d.className=`supgem${s?" on":""}`;d.title=s?`${s.name}\n${s.desc}`:`Support slot ${i+1}`;d.textContent=s?s.ico:"○";d.onclick=()=>setTab("gems");sg.appendChild(d);}}
+  const fc=document.getElementById("fls");
+  if(fc){fc.innerHTML="";for(let i=0;i<FLS;i++){const fs=gs?.fl?.[i];const d2=fs?FL.find(x=>x.id===fs.id):null;const el=flT[i]||0;const pct=d2?Math.min(100,(el/d2.iv)*100):0;const dv=document.createElement("div");dv.className=`flslot${d2?" fhas":""}${pct>=100?" fready":""}`;dv.title=d2?`${d2.name} · Every ${d2.iv/1000}s · ${Math.floor(pct)}% ready`:"Empty";dv.innerHTML=d2?`<div class="fni">${d2.ico}</div><div class="fnn">${d2.name}</div><div class="fcd"><div class="fcdf" style="width:${pct}%"></div></div>`:`<div style="font-size:10px;color:#2c2015">+</div>`;dv.onclick=()=>setTab("craft");fc.appendChild(dv);}}
 }
-
-function renderBuffStrip(){
-  const el=document.getElementById("buff-strip");if(!el)return;
+function renderBufStrip(){
+  const el=document.getElementById("bstrip");if(!el)return;
   const now=performance.now();
-  const active=activeBuffs.filter(b=>b.endAt>now&&b.label);
-  el.innerHTML=active.map(b=>{
-    const rem=Math.max(0,(b.endAt-now)/1000).toFixed(1);
-    return `<div class="buff-pill" style="color:${b.color||"#c89028"};border-color:${b.color||"#c89028"}44;background:${b.color||"#c89028"}11">${b.label} ${rem}s</div>`;
-  }).join("");
-}
-
-function updateAscBtn(){const btn=document.getElementById("ascbtn");if(!btn)return;const has=(gs.ascPoints||0)>0;btn.disabled=!has;btn.textContent=has?`ASCENDANCY (${gs.ascPoints}pt)`:"ASCENDANCY (clear 10 areas)";}
-
-// ── TABS ────────────────────────────────────────────────────────
-function setTab(t){
-  curTab=t;gemPickMode=null;
-  document.querySelectorAll(".tb").forEach((b,i)=>{b.classList.toggle("active",["passive","upgrade","skills","craft","inventory"][i]===t);});
-  renderTab();
-}
-function renderTab(){
-  const el=document.getElementById("tcon");if(!el)return;
-  if(curTab==="passive")renderPassive(el);
-  else if(curTab==="upgrade")renderUpgrade(el);
-  else if(curTab==="skills")renderSkillsTab(el);
-  else if(curTab==="craft")renderCraftTab(el);
-  else if(curTab==="inventory")renderInventory(el);
-}
-
-function renderPassive(el){
-  const canA=n=>!gs.allocated.includes(n.id)&&gs.passivePoints>0&&(!n.req||n.req.some(r=>gs.allocated.includes(r))||gs.allocated.length===0);
-  let h=`<div style="font-size:11px;color:#786855;margin-bottom:7px">Points: <b style="color:#c89028">${gs.passivePoints}</b></div>`;
-  for(const row of[0,1,2]){
-    const ns=PASSIVES.filter(n=>n.row===row);
-    h+=`<div style="font-size:9px;color:#786855;margin-bottom:2px;font-style:italic">${["Basic","Notable","Keystone"][row]} Nodes</div><div class="pgrid">`;
-    for(const n of ns){const al=gs.allocated.includes(n.id);const av=canA(n);h+=`<div class="pn ${n.ty}${al?" al":av?" av":""}" style="${!al&&!av?"opacity:.35":""}" onclick="allocP('${n.id}')">${n.s.slice(0,6)}<div class="ptt"><b>${n.name}</b>${n.desc}</div></div>`;}
-    h+="</div>";
-  }
-  if(gs.allocated.length>0){h+=`<div class="pt" style="margin-top:4px">Allocated</div>`;for(const id of gs.allocated){const n=PASSIVES.find(x=>x.id===id);if(n)h+=`<div style="font-size:10px;color:#f0b030;padding:1px 0">✦ ${n.name}</div>`;}}
+  let h="";
+  if(invT>0)h+=`<div class="bpill" style="color:#88aaff;border-color:#88aaff44;background:#88aaff11">Invincible ${(invT/1000).toFixed(1)}s</div>`;
+  h+=aBuf.filter(b=>b.endAt>now&&b.label).map(b=>{const rem=((b.endAt-now)/1000).toFixed(1);return`<div class="bpill" style="color:${b.col||"#c89028"};border-color:${b.col||"#c89028"}44;background:${b.col||"#c89028"}11">${b.label} ${rem}s</div>`;}).join("");
   el.innerHTML=h;
 }
 
-function renderUpgrade(el){
-  const ct=cTot(gs.currency);let h=`<div style="font-size:10px;color:#786855;margin-bottom:3px">Total: <b style="color:#c89028">${fmt(ct)}</b></div>`;
-  for(const def of UPGRADES){const lv=gs.upgrades[def.id]||0;const cost=upgC(def,lv);const mx=lv>=def.max;const can=!mx&&ct>=cost;h+=`<div class="uc${can?" can":""}"><div class="uh"><span class="uico">${def.ico}</span><span class="unm">${def.name}</span><span class="ulv">Lv${lv}/${def.max}</span></div><div class="ud">${def.desc}</div><div class="upb"><div class="upbf" style="width:${lv/def.max*100}%"></div></div><button class="ub${mx?" max":can?" buy":""}" onclick="buyUpg('${def.id}')">${mx?"MAXED":fmt(cost)+" curr"}</button></div>`;}
-  el.innerHTML=h;
-}
+// ── TABS ──────────────────────────────────────────────────────────
+function setTab(t){curTab=t;document.querySelectorAll(".tb").forEach((b,i)=>{b.classList.toggle("act",["pass","upg","gems","craft","loot"][i]===t);});renderTab();}
+function renderTab(){const el=document.getElementById("tcon");if(!el)return;if(curTab==="pass")renderPass(el);else if(curTab==="upg")renderUpg(el);else if(curTab==="gems")renderGems(el);else if(curTab==="craft")renderCraft(el);else renderLoot(el);}
 
-function renderSkillsTab(el){
-  const lv=gs.level;
-  let h=`<div style="font-size:10px;color:#786855;margin-bottom:6px">Choose 1 main skill + up to 3 support gems.</div>`;
-
-  // Main gem section
-  h+=`<div class="pt">Main Skill Gem</div>`;
-  for(const def of MAIN_GEMS){
-    const locked=lv<def.unlockLv;
-    const active=gs.mainGem===def.id;
-    if(locked)continue;
-    h+=`<div class="gem-picker${active?" selected":""}" onclick="selectMainGem('${def.id}')">
-      <div class="gp-head">
-        <span class="gp-ico">${def.ico}</span>
-        <span class="gp-name">${def.name}</span>
-        <span class="gp-type" style="background:${def.color}22;color:${def.color};border:1px solid ${def.color}44">${def.type}</span>
-      </div>
-      <div class="gp-desc">${def.desc}</div>
-      <div class="gp-stats">CD: ${def.cd/1000}s · ×${def.dmgM} dmg${def.hits?` · ${def.hits} hits`:""}</div>
-    </div>`;
-  }
-  const lockedMains=MAIN_GEMS.filter(d=>lv<d.unlockLv);
-  if(lockedMains.length){h+=`<div style="font-size:9px;color:#3a3020;margin-top:4px;font-style:italic">${lockedMains.length} skills locked (keep leveling)</div>`;}
-
-  // Support gem section
-  h+=`<div class="pt" style="margin-top:8px">Support Gems (slots 1-3)</div>`;
-  for(let i=0;i<3;i++){
-    const sid=gs.supGems[i];
-    const sup=sid?SUP_GEMS.find(x=>x.id===sid):null;
-    h+=`<div style="font-size:9px;color:#786855;margin-bottom:3px">Slot ${i+1}: ${sup?`<b style="color:${sup.color}">${sup.name}</b>`:"Empty"} <button onclick="clearSupGem(${i})" style="font-size:8px;font-family:Georgia,serif;background:transparent;border:1px solid #2c2015;color:#555;cursor:pointer;padding:0 4px;margin-left:4px">✕ Clear</button></div>`;
-  }
-  h+=`<div style="font-size:9px;color:#9858d8;margin-bottom:4px;margin-top:4px">Available Support Gems:</div>`;
-  for(const sup of SUP_GEMS){
-    if(lv<sup.unlockLv)continue;
-    const inSlot=gs.supGems.indexOf(sup.id);
-    h+=`<div class="sup-picker${inSlot>=0?" selected":""}" onclick="cycleSup('${sup.id}')">
-      <div class="sp-head"><span class="sp-ico">${sup.ico}</span><span class="sp-name">${sup.name}</span>${inSlot>=0?`<span style="font-size:8px;color:#44aa22">Slot ${inSlot+1}</span>`:""}</div>
-      <div class="sp-desc">${sup.desc}</div>
-    </div>`;
-  }
-  el.innerHTML=h;
-}
-
-function selectMainGem(id){gs.mainGem=id;skillCD=0;addLog(`✦ Skill: ${MAIN_GEMS.find(x=>x.id===id)?.name}`,"skill");renderTab();renderSkillFlaskBar();sched();}
-function cycleSup(id){
-  const sups=gs.supGems;
-  const existing=sups.indexOf(id);
-  if(existing>=0){sups[existing]=null;}else{
-    const empty=sups.findIndex(s=>!s);
-    if(empty>=0)sups[empty]=id;
-    else sups[2]=id;
-  }
-  addLog(`Support gem updated.`,"skill");renderTab();renderSkillFlaskBar();sched();
-}
-function clearSupGem(i){gs.supGems[i]=null;renderTab();renderSkillFlaskBar();sched();}
-
-function renderCraftTab(el){
-  const ct=cTot(gs.currency);
-  let h=`<div style="font-size:10px;color:#786855;margin-bottom:6px">Select an item, then spend currency to enhance it.</div>`;
-
-  // Item selector
-  h+=`<div class="pt">Select Item</div>`;
-  for(const[slot,item]of Object.entries(gs.equip)){
-    if(!item)continue;
-    const key="eq:"+slot;const sel=craftSel===key;const col=RCOL[item.rarity]||RCOL.normal;
-    h+=`<div class="craft-item-row${sel?" selected":""}" onclick="craftSelect('${key}')"><div class="ci-name" style="color:${col}">${item.name}</div><div class="ci-slot">${SLOTL[slot]}</div></div>`;
-  }
-  for(let i=0;i<gs.inventory.length;i++){
-    const item=gs.inventory[i];if(!item)continue;
-    const sel=craftSel===i;const col=RCOL[item.rarity]||RCOL.normal;
-    h+=`<div class="craft-item-row${sel?" selected":""}" onclick="craftSelect(${i})"><div class="ci-name" style="color:${col}">${item.name}</div><div class="ci-slot">${SLOTL[item.slot]||""}</div></div>`;
-  }
-
-  // Craft actions
-  const selItem=getCraftItem();
-  h+=`<div class="pt" style="margin-top:8px">Enhancements</div>`;
-  if(!selItem){h+=`<div style="font-size:10px;color:#786855;font-style:italic">Select an item above</div>`;}
-  else{
-    const col=RCOL[selItem.rarity]||RCOL.normal;
-    const mods=selItem.mods||[];
-    // Re-roll single mod (Alt) — magic+
-    if(selItem.rarity==="magic"||selItem.rarity==="rare"){
-      const can=(gs.currency.alt||0)>=1;
-      h+=`<button class="craft-enhance-btn${can?" can":""}" onclick="${can?"craftAction('reroll_mod')":""}">🔄 Re-roll one mod (1 Alt) · ${fmt(gs.currency.alt||0)} Alt available</button>`;
+// PASSIVE TAB
+function renderPass(el){
+  const canA=n=>!gs.alloc.includes(n.id)&&gs.pp>0&&(!n.q||n.q.some(r=>gs.alloc.includes(r))||gs.alloc.length===0);
+  const sections=[
+    {label:"Basic (rows 1–2)",rows:[0,1]},
+    {label:"Notable (rows 3–4)",rows:[2,3]},
+    {label:"Mid-tier (rows 5–6)",rows:[4,5]},
+    {label:"Advanced (rows 7–8)",rows:[6,7]},
+    {label:"Elite & Keystones (rows 9–10)",rows:[8,9]},
+  ];
+  let h=`<div style="font-size:12px;color:#786855;margin-bottom:8px">Points: <b style="color:#c89028;font-size:14px">${gs.pp}</b> · Allocated: <b style="color:#f0b030">${gs.alloc.length}</b></div>`;
+  for(const sec of sections){
+    h+=`<div class="psec"><div class="psh">${sec.label}</div>`;
+    for(const row of sec.rows){
+      const ns=PASS.filter(n=>n.r===row);
+      h+=`<div class="pgrid">`;
+      for(const n of ns){const al=gs.alloc.includes(n.id);const av=canA(n);h+=`<div class="pn ${n.ty}${al?" al":av?" av":""}" style="${!al&&!av?"opacity:.28":""}" onclick="allocP('${n.id}')">${n.s.slice(0,7)}<div class="ptt"><b>${n.n}</b>${n.d}</div></div>`;}
+      h+=`</div>`;
     }
-    // Add mod (Alch) — normal→magic, or magic/rare with <6 mods
-    if((selItem.rarity==="normal"||((selItem.rarity==="magic"||selItem.rarity==="rare")&&mods.length<6))){
-      const cost=selItem.rarity==="normal"?{alch:1}:mods.length<3?{alch:1}:{chaos:1};
-      const costStr=Object.entries(cost).map(([c,a])=>`${a} ${c}`).join(", ");
-      const can=Object.entries(cost).every(([c,a])=>(gs.currency[c]||0)>=a);
-      h+=`<button class="craft-enhance-btn${can?" can":""}" onclick="${can?`craftAction('add_mod',${JSON.stringify(cost).replace(/"/g,"'")})`:""}">✦ Add mod (${costStr}) · ${mods.length} mods currently</button>`;
-    }
-    // Re-roll all (Chaos) — rare
-    if(selItem.rarity==="rare"){
-      const can=(gs.currency.chaos||0)>=1;
-      h+=`<button class="craft-enhance-btn${can?" can":""}" onclick="${can?"craftAction('reroll_all')":""}">🌀 Re-roll all mods (1 Chaos) · ${fmt(gs.currency.chaos||0)} Chaos available</button>`;
-    }
-    // Add premium mod (Exalt)
-    if((selItem.rarity==="magic"||selItem.rarity==="rare")&&mods.length<6){
-      const can=(gs.currency.exalt||0)>=1;
-      h+=`<button class="craft-enhance-btn${can?" can":""}" onclick="${can?"craftAction('exalt_mod')":""}">✨ Add premium mod (1 Exalt) · ${fmt(gs.currency.exalt||0)} Exalt available</button>`;
-    }
-    // Preview
-    h+=`<div class="craft-result-preview"><div style="font-weight:bold;color:${col};margin-bottom:4px">${selItem.name}</div><div style="font-size:9px;color:#786855;font-style:italic;margin-bottom:3px">${selItem.rarity} · ${selItem.slot}</div>`;
-    for(const m of mods)h+=`<div style="font-size:9px;color:#4080d0;padding:1px 0">${m.label||m}</div>`;
-    if(!mods.length)h+=`<div style="font-size:9px;color:#3a3020;font-style:italic">No mods</div>`;
     h+=`</div>`;
-    // Flask equip section
-    h+=`<div class="pt" style="margin-top:8px">Flask Belt</div>`;
-    h+=`<div style="font-size:9px;color:#786855;margin-bottom:4px">Spend currency to equip flasks (auto-fire every N seconds).</div>`;
-    const flaskBuys=[
-      {defId:"fl_life_s", cost:{alt:3},  lv:1},
-      {defId:"fl_life_m", cost:{alch:2}, lv:5},
-      {defId:"fl_life_l", cost:{chaos:1},lv:12},
-      {defId:"fl_quick",  cost:{alch:3}, lv:4},
-      {defId:"fl_granite",cost:{alch:4}, lv:8},
-      {defId:"fl_diamond",cost:{chaos:1},lv:10},
-      {defId:"fl_divine", cost:{exalt:1},lv:20},
-    ];
-    for(const fb of flaskBuys){
-      if(gs.level<fb.lv)continue;
-      const def=FLASK_DEFS.find(x=>x.id===fb.defId);if(!def)continue;
-      const costStr=Object.entries(fb.cost).map(([c,a])=>`${a} ${c}`).join(", ");
-      const can=Object.entries(fb.cost).every(([c,a])=>(gs.currency[c]||0)>=a);
-      const col2=RCOL[def.rarity]||RCOL.normal;
-      h+=`<button class="craft-enhance-btn${can?" can":""}" onclick="${can?`buyFlask('${fb.defId}',${JSON.stringify(fb.cost).replace(/"/g,"'")})`:""}"><span style="color:${col2}">${def.ico} ${def.name}</span> · ${def.type==="life"?`Heals ${def.healPct}%`:def.desc} · Cost: ${costStr}</button>`;
-    }
   }
   el.innerHTML=h;
 }
 
-function getCraftItem(){
-  if(craftSel===null)return null;
-  if(typeof craftSel==="string"&&craftSel.startsWith("eq:"))return gs.equip[craftSel.slice(3)]||null;
-  return gs.inventory[craftSel]||null;
+// UPGRADE TAB
+function renderUpg(el){
+  const ct=cTot(gs.cur);let h=`<div style="font-size:12px;color:#786855;margin-bottom:5px">Currency: <b style="color:#c89028">${fmt(ct)}</b></div>`;
+  for(const def of UPG){const lv=gs.upg[def.id]||0;const cost=upgC(def,lv);const mx=lv>=def.max;const can=!mx&&ct>=cost;h+=`<div class="uc${can?" can":""}"><div class="uh"><span class="uico">${def.ico}</span><span class="unm">${def.name}</span><span class="ulv">Lv${lv}/${def.max}</span></div><div class="ud">${def.d}</div><div class="upb"><div class="upbf" style="width:${lv/def.max*100}%"></div></div><button class="ub${mx?" mx":can?" buy":""}" onclick="buyUpg('${def.id}')">${mx?"MAXED":fmt(cost)+" curr"}</button></div>`;}
+  el.innerHTML=h;
 }
-function putCraftItem(item){
-  if(craftSel===null)return;
-  if(typeof craftSel==="string"&&craftSel.startsWith("eq:"))gs.equip[craftSel.slice(3)]=item;
-  else gs.inventory[craftSel]=item;
-}
-function craftSelect(key){craftSel=key;renderTab();}
 
-function craftAction(type,costObj){
-  const item=getCraftItem();if(!item)return;
-  if(type==="reroll_mod"){
-    if((gs.currency.alt||0)<1){showNotif("Need 1 Alt!","#ff8844");return;}
-    gs.currency.alt--;
-    const mods=[...(item.mods||[])];
-    if(!mods.length)return;
-    const idx=Math.floor(Math.random()*mods.length);
-    mods[idx]=pickCraftMod(item.slot);
-    putCraftItem({...item,mods,eff:modsToEff(mods),stats:mods.map(m=>m.label)});
-    addLog(`🔄 Alt: Re-rolled mod on ${item.name}`,"craft");
-  }else if(type==="add_mod"){
-    const cost=costObj;
-    for(const[c,a]of Object.entries(cost)){if((gs.currency[c]||0)<a){showNotif("Not enough!","#ff8844");return;}gs.currency[c]-=a;}
-    const mods=[...(item.mods||[]),pickCraftMod(item.slot)];
-    const newRarity=item.rarity==="normal"?"magic":item.rarity==="magic"&&mods.length>2?"rare":item.rarity;
-    putCraftItem({...item,rarity:newRarity,mods,eff:modsToEff(mods),stats:mods.map(m=>m.label)});
-    addLog(`✦ Added mod to ${item.name}`,"craft");
-  }else if(type==="reroll_all"){
-    if((gs.currency.chaos||0)<1){showNotif("Need 1 Chaos!","#ff8844");return;}
-    gs.currency.chaos--;
-    const count=(item.mods||[]).length||4;
-    const mods=Array.from({length:count},()=>pickCraftMod(item.slot));
-    putCraftItem({...item,mods,eff:modsToEff(mods),stats:mods.map(m=>m.label)});
-    addLog(`🌀 Chaos: Re-rolled ${item.name}`,"craft");
-  }else if(type==="exalt_mod"){
-    if((gs.currency.exalt||0)<1){showNotif("Need 1 Exalt!","#ff8844");return;}
-    gs.currency.exalt--;
-    const mods=[...(item.mods||[]),pickCraftMod(item.slot)];
-    putCraftItem({...item,mods,eff:modsToEff(mods),stats:mods.map(m=>m.label)});
-    addLog(`✨ Exalt: Added premium mod to ${item.name}`,"craft");
+// GEMS TAB
+function renderGems(el){
+  const lv=gs.lv;let h=`<div style="font-size:11px;color:#786855;margin-bottom:8px">Pick 1 main skill + up to 3 supports.</div>`;
+  h+=`<div class="psh">Main Skill Gems</div>`;
+  for(const def of MG){if(lv<def.lv)continue;const act=gs.mg===def.id;h+=`<div class="gc${act?" sel":""}" onclick="selMG('${def.id}')"><div class="gch"><span class="gcico">${def.ico}</span><span class="gcnm">${def.name}</span><span class="gctyp" style="background:${def.col}22;color:${def.col};border:1px solid ${def.col}44">${def.type}</span></div><div class="gcd2">${def.desc}</div><div class="gcst">CD: ${def.cd/1000}s · ×${def.dm} dmg${def.hits?` · ${def.hits} hits`:""}</div></div>`;}
+  const lk=MG.filter(d=>lv<d.lv);if(lk.length)h+=`<div style="font-size:10px;color:#3a3020;font-style:italic;margin:3px 0">${lk.length} skills locked</div>`;
+  h+=`<div class="psh" style="margin-top:10px">Support Gems</div>`;
+  for(let i=0;i<3;i++){const sid=gs.sg[i];const s=sid?SG.find(x=>x.id===sid):null;h+=`<div style="font-size:10px;color:#786855;margin-bottom:3px">Slot ${i+1}: ${s?`<b style="color:${s.col}">${s.name}</b>`:"Empty"} <button onclick="clrSG(${i})" style="font-size:9px;font-family:Georgia,serif;background:transparent;border:1px solid #2c2015;color:#555;cursor:pointer;padding:0 4px;margin-left:4px;border-radius:2px">✕</button></div>`;}
+  h+=`<div style="font-size:10px;color:#9858d8;margin-bottom:4px;margin-top:5px">Available:</div>`;
+  for(const sup of SG){if(lv<sup.lv)continue;const idx=gs.sg.indexOf(sup.id);h+=`<div class="sc${idx>=0?" sel":""}" onclick="cycleSG('${sup.id}')"><div class="sch"><span class="scico">${sup.ico}</span><span class="scnm">${sup.name}</span>${idx>=0?`<span style="font-size:10px;color:#44cc44;margin-left:auto">Slot ${idx+1}</span>`:""}</div><div class="scd">${sup.desc}</div></div>`;}
+  el.innerHTML=h;
+}
+function selMG(id){gs.mg=id;skillCD=0;addLog(`✦ Skill → ${MG.find(x=>x.id===id)?.name}`,"skill");renderTab();renderSF();sched();}
+function cycleSG(id){const s=gs.sg;const ex=s.indexOf(id);if(ex>=0){s[ex]=null;}else{const e=s.findIndex(x=>!x);if(e>=0)s[e]=id;else s[2]=id;}renderTab();renderSF();sched();}
+function clrSG(i){gs.sg[i]=null;renderTab();renderSF();sched();}
+
+// CRAFT TAB
+function renderCraft(el){
+  let h=`<div style="font-size:11px;color:#786855;margin-bottom:7px">Select an item, then apply crafting actions.</div>`;
+  h+=`<div class="psh">Select Item</div>`;
+  for(const[slot,item]of Object.entries(gs.eq)){if(!item)continue;const key="eq:"+slot;const sel=craftSel===key;const col=RCOL[item.rarity]||RCOL.normal;h+=`<div class="cis${sel?" sel":""}" onclick="selCraft('${key}')"><div style="font-size:11px;color:${col};font-weight:bold">${item.name}</div><div style="font-size:10px;color:#786855">${SLOTL[slot]} (equipped)</div></div>`;}
+  for(let i=0;i<gs.inv.length;i++){const item=gs.inv[i];if(!item)continue;const sel=craftSel===i;const col=RCOL[item.rarity]||RCOL.normal;h+=`<div class="cis${sel?" sel":""}" onclick="selCraft(${i})"><div style="font-size:11px;color:${col};font-weight:bold">${item.name}</div><div style="font-size:10px;color:#786855">${SLOTL[item.slot]||item.slot}</div></div>`;}
+  const si=getCraftItem();
+  if(si){
+    const col=RCOL[si.rarity]||RCOL.normal;const mods=si.mods||[];
+    h+=`<div class="psh" style="margin-top:10px">Craft Actions</div>`;
+    if(si.rarity==="magic"||si.rarity==="rare"){const can=(gs.cur.alt||0)>=1;h+=`<button class="cbtn${can?" can":""}" onclick="${can?"doCraft('alt')":""}">🔄 Re-roll one mod — 1 Alt (have ${fmt(gs.cur.alt||0)})</button>`;}
+    if(si.rarity==="normal"||(si.rarity==="magic"&&mods.length<2)||(si.rarity==="rare"&&mods.length<6)){const can=(gs.cur.alch||0)>=1;h+=`<button class="cbtn${can?" can":""}" onclick="${can?"doCraft('add')":""}">✦ Add mod — 1 Alch · ${mods.length} mods currently</button>`;}
+    if(si.rarity==="rare"){const can=(gs.cur.chaos||0)>=1;h+=`<button class="cbtn${can?" can":""}" onclick="${can?"doCraft('chaos')":""}">🌀 Re-roll all mods — 1 Chaos</button>`;}
+    if((si.rarity==="magic"||si.rarity==="rare")&&mods.length<6){const can=(gs.cur.exalt||0)>=1;h+=`<button class="cbtn${can?" can":""}" onclick="${can?"doCraft('exalt')":""}">✨ Add premium mod — 1 Exalt</button>`;}
+    h+=`<div class="cprev"><div style="font-weight:bold;color:${col};font-size:12px;margin-bottom:3px">${si.name}</div><div style="font-size:10px;color:#786855;font-style:italic;margin-bottom:3px">${si.rarity} · ${si.slot}</div>`;
+    for(const m of mods)h+=`<div style="font-size:11px;color:#4080d0;padding:1px 0">${m.label||m}</div>`;
+    if(!mods.length)h+=`<div style="font-size:10px;color:#3a3020;font-style:italic">No mods</div>`;
+    h+=`</div>`;
   }
+  h+=`<div class="psh" style="margin-top:12px">Flask Belt</div>`;
+  const fb=[{id:"fl_ls",cost:{alt:3},lv:1},{id:"fl_lm",cost:{alch:2},lv:5},{id:"fl_ll",cost:{chaos:1},lv:12},{id:"fl_q",cost:{alch:3},lv:4},{id:"fl_g",cost:{alch:4},lv:8},{id:"fl_d",cost:{chaos:1},lv:10},{id:"fl_dv",cost:{exalt:1},lv:20}];
+  for(const f of fb){if(gs.lv<f.lv)continue;const d=FL.find(x=>x.id===f.id);if(!d)continue;const cs=Object.entries(f.cost).map(([c,a])=>`${a} ${c}`).join(", ");const can=Object.entries(f.cost).every(([c,a])=>(gs.cur[c]||0)>=a);h+=`<button class="cbtn${can?" can":""}" onclick="${can?`buyFlask('${f.id}',${JSON.stringify(f.cost).replace(/"/g,"'")})`:""}"><b>${d.ico} ${d.name}</b> · ${d.ty==="life"?`Heals ${d.hp}% every ${d.iv/1000}s`:`Buff every ${d.iv/1000}s`} · Cost: ${cs}</button>`;}
+  el.innerHTML=h;
+}
+function getCraftItem(){if(craftSel===null)return null;if(typeof craftSel==="string"&&craftSel.startsWith("eq:"))return gs.eq[craftSel.slice(3)]||null;return gs.inv[craftSel]||null;}
+function putCraftItem(item){if(craftSel===null)return;if(typeof craftSel==="string"&&craftSel.startsWith("eq:"))gs.eq[craftSel.slice(3)]=item;else gs.inv[craftSel]=item;}
+function selCraft(k){craftSel=k;renderTab();}
+function doCraft(type){
+  const item=getCraftItem();if(!item)return;
+  if(type==="alt"){if((gs.cur.alt||0)<1){showNotif("Need 1 Alt!","#ff8844");return;}gs.cur.alt--;const mods=[...(item.mods||[])];if(!mods.length)return;mods[Math.floor(Math.random()*mods.length)]=pickMod(item.slot);putCraftItem({...item,mods,eff:m2e(mods),stats:mods.map(m=>m.label)});addLog(`🔄 Alt: Re-rolled mod on ${item.name}`,"craft");}
+  else if(type==="add"){if((gs.cur.alch||0)<1){showNotif("Need 1 Alch!","#ff8844");return;}gs.cur.alch--;const mods=[...(item.mods||[]),pickMod(item.slot)];const nr=item.rarity==="normal"?"magic":item.rarity==="magic"&&mods.length>2?"rare":item.rarity;putCraftItem({...item,rarity:nr,mods,eff:m2e(mods),stats:mods.map(m=>m.label)});addLog(`✦ Added mod to ${item.name}`,"craft");}
+  else if(type==="chaos"){if((gs.cur.chaos||0)<1){showNotif("Need 1 Chaos!","#ff8844");return;}gs.cur.chaos--;const cnt=(item.mods||[]).length||4;const mods=Array.from({length:cnt},()=>pickMod(item.slot));putCraftItem({...item,mods,eff:m2e(mods),stats:mods.map(m=>m.label)});addLog(`🌀 Chaos: Re-rolled ${item.name}`,"craft");}
+  else if(type==="exalt"){if((gs.cur.exalt||0)<1){showNotif("Need 1 Exalt!","#ff8844");return;}gs.cur.exalt--;const mods=[...(item.mods||[]),pickMod(item.slot)];putCraftItem({...item,mods,eff:m2e(mods),stats:mods.map(m=>m.label)});addLog(`✨ Exalt: Added mod to ${item.name}`,"craft");}
   recalc(gs);renderTab();sched();
 }
+function buyFlask(id,costObj){for(const[c,a]of Object.entries(costObj)){if((gs.cur[c]||0)<a){showNotif("Not enough!","#ff8844");return;}gs.cur[c]-=a;}if(!gs.fl)gs.fl=Array(FLS).fill(null);const e=gs.fl.findIndex(x=>!x);if(e<0){showNotif("Flask slots full!","#ff8844");return;}gs.fl[e]={id};flT[e]=99999;addLog(`🧪 ${FL.find(x=>x.id===id)?.name} equipped`,"flask");renderTab();renderSF();sched();}
 
-function buyFlask(defId,costObj){
-  for(const[c,a]of Object.entries(costObj)){if((gs.currency[c]||0)<a){showNotif("Not enough currency!","#ff8844");return;}gs.currency[c]-=a;}
-  if(!gs.equippedFlasks)gs.equippedFlasks=Array(FLASK_SLOTS).fill(null);
-  const empty=gs.equippedFlasks.findIndex(x=>!x);
-  if(empty<0){showNotif("Flask slots full!","#ff8844");return;}
-  gs.equippedFlasks[empty]={defId};
-  flaskTimers[empty]=0;
-  const def=FLASK_DEFS.find(x=>x.id===defId);
-  addLog(`🧪 ${def?.name} added to flask belt (slot ${empty+1})`,"flask");
-  renderTab();renderSkillFlaskBar();sched();
-}
-
-function renderInventory(el){
-  let h=`<div style="font-size:10px;color:#786855;margin-bottom:4px">${gs.inventory.length}/20 slots</div>`;
-  if(!gs.inventory.length)h+=`<div style="font-size:11px;color:#786855;font-style:italic;text-align:center;padding:20px 0">No items</div>`;
-  else for(let i=0;i<gs.inventory.length;i++){const it=gs.inventory[i];const col=RCOL[it.rarity]||RCOL.normal;h+=`<div class="iv" style="border-color:${col}77" onclick="equipInv(${i})"><div style="font-size:10px;color:${col}">${it.name}</div><div style="font-size:9px;color:#786855;margin-top:1px">${it.slot} · ${(it.mods||it.stats||[]).slice(0,2).map(m=>typeof m==="string"?m:m.label).join(", ")}</div><div style="font-size:8px;color:#5a3e10;font-weight:bold;margin-top:2px">▶ Equip</div></div>`;}
+// LOOT TAB
+function renderLoot(el){
+  const all=gs.inv;
+  const fil=invFil;
+  let filtered=all;
+  if(fil==="unique")filtered=all.filter(x=>x.rarity==="unique");
+  else if(fil==="rare")filtered=all.filter(x=>x.rarity==="rare");
+  else if(fil==="magic")filtered=all.filter(x=>x.rarity==="magic");
+  else if(fil==="normal")filtered=all.filter(x=>x.rarity==="normal");
+  else if(fil.startsWith("slot:"))filtered=all.filter(x=>x.slot===fil.slice(5));
+  const totalSell=all.reduce((s,x)=>s+sellVal(x),0);
+  const filtSell=filtered.reduce((s,x)=>s+sellVal(x),0);
+  let h=`<div style="font-size:11px;color:#786855;margin-bottom:6px">${all.length}/24 slots · click item to equip or sell</div>`;
+  h+=`<div class="inv-bar">`;
+  for(const[f,label]of[["all","All"],["unique","Unique"],["rare","Rare"],["magic","Magic"],["normal","Normal"],["slot:weapon","Wep"],["slot:ring","Ring"]]){h+=`<button class="fp${invFil===f?" on":""}" onclick="setFil('${f}')">${label}</button>`;}
+  h+=`<button class="sab" onclick="sellAll()">Sell All (${totalSell} Alt)</button>`;
+  h+=`</div>`;
+  if(!filtered.length){h+=`<div style="font-size:12px;color:#786855;font-style:italic;text-align:center;padding:20px 0">No items</div>`;el.innerHTML=h;return;}
+  h+=`<div class="inv-grid">`;
+  for(let i=0;i<all.length;i++){
+    const item=all[i];if(!item||!filtered.includes(item))continue;
+    const col=RCOL[item.rarity]||RCOL.normal;
+    const eq=gs.eq[item.slot];
+    const sd=iScore(item)-iScore(eq);
+    const cc=sd>5?"#44cc44":sd<-5?"#cc4444":"#786855";
+    const cl=sd>5?"▲ Upgrade":sd<-5?"▼ Downgrade":"≈ Similar";
+    const sv=sellVal(item);
+    const modHtml=(item.mods||item.stats||[]).slice(0,3).map(m=>typeof m==="string"?m:m.label).map(s=>`<div>${s}</div>`).join("");
+    h+=`<div class="iv" style="border-color:${col}88">
+      <div class="ivn" style="color:${col}">${item.name.slice(0,18)}${item.name.length>18?"…":""}</div>
+      <div class="ivs">${SLOTL[item.slot]||item.slot} · ${item.rarity}</div>
+      <div class="ivm">${modHtml}</div>
+      ${eq?`<div class="ivc"><span style="color:${cc}">${cl}</span> vs equipped</div>`:""}
+      <div class="iva">
+        <button class="ivb eq" onclick="doEquip(${i})">▶ Equip</button>
+        <button class="ivb sl" onclick="doSell(${i})">$ ${sv} Alt</button>
+      </div>
+    </div>`;
+  }
+  h+=`</div>`;
   el.innerHTML=h;
 }
+function setFil(f){invFil=f;renderTab();}
+function sellAll(){const tot=gs.inv.reduce((s,x)=>s+sellVal(x),0);if(!tot){showNotif("Nothing to sell!","#ff8844");return;}gs.inv=[];gs.cur.alt+=tot;addLog(`💰 Sold all for ${tot} Alt`,"currency");showNotif(`Sold all — +${tot} Alt`,"#cc7722");renderTab();sched();}
+function doSell(i){const item=gs.inv[i];if(!item)return;const sv=sellVal(item);gs.cur.alt+=sv;gs.inv.splice(i,1);addLog(`💰 Sold ${item.name} for ${sv} Alt`,"currency");renderTab();sched();}
+function doEquip(i){const it=gs.inv[i];if(!it)return;const old=gs.eq[it.slot];gs.eq[it.slot]=it;gs.inv.splice(i,1);if(old)gs.inv.unshift(old);if(gs.inv.length>24)gs.inv.pop();addLog(`Equipped ${it.name}`,"kill");recalc(gs);renderTab();sched();}
 
-// ── ACTIONS ─────────────────────────────────────────────────────
-function allocP(id){const n=PASSIVES.find(x=>x.id===id);if(!n||gs.allocated.includes(id)||gs.passivePoints<=0)return;const ok=!n.req||n.req.some(r=>gs.allocated.includes(r))||gs.allocated.length===0;if(!ok){showNotif("Prerequisite required!","#ff8844");return;}gs.allocated.push(id);gs.passivePoints--;addLog(`Passive "${n.name}" allocated!`,"passive");recalc(gs);renderTab();sched();}
-function buyUpg(id){const def=UPGRADES.find(x=>x.id===id);if(!def)return;const lv=gs.upgrades[id]||0;if(lv>=def.max)return;const cost=upgC(def,lv);const ct=cTot(gs.currency);if(ct<cost){showNotif("Not enough currency!","#ff8844");return;}let rem=cost;const cur={...gs.currency};for(const c of[...CURRD].reverse()){const sp=Math.min(cur[c.id],Math.ceil(rem/CURRV[c.id]));cur[c.id]-=sp;rem-=sp*CURRV[c.id];if(rem<=0)break;}gs.currency=cur;gs.upgrades[id]=(gs.upgrades[id]||0)+1;addLog(`${def.name} Lv.${gs.upgrades[id]}`,"upgrade");recalc(gs);renderTab();sched();}
-function equipInv(idx){const it=gs.inventory[idx];if(!it)return;const old=gs.equip[it.slot];gs.equip[it.slot]=it;gs.inventory.splice(idx,1);if(old)gs.inventory.unshift(old);if(gs.inventory.length>20)gs.inventory.pop();addLog(`Equipped ${it.name}`,"kill");recalc(gs);renderTab();sched();}
+// ACTIONS
+function allocP(id){const n=PASS.find(x=>x.id===id);if(!n||gs.alloc.includes(id)||gs.pp<=0)return;const ok=!n.q||n.q.some(r=>gs.alloc.includes(r))||gs.alloc.length===0;if(!ok){showNotif("Prerequisite required!","#ff8844");return;}gs.alloc.push(id);gs.pp--;addLog(`Passive "${n.n}" allocated!`,"passive");recalc(gs);renderTab();sched();}
+function buyUpg(id){const def=UPG.find(x=>x.id===id);if(!def)return;const lv=gs.upg[id]||0;if(lv>=def.max)return;const cost=upgC(def,lv);const ct=cTot(gs.cur);if(ct<cost){showNotif("Not enough currency!","#ff8844");return;}let rem=cost;const cur={...gs.cur};for(const c of[...CURRD].reverse()){const sp=Math.min(cur[c.id],Math.ceil(rem/CURRV[c.id]));cur[c.id]-=sp;rem-=sp*CURRV[c.id];if(rem<=0)break;}gs.cur=cur;gs.upg[id]=(gs.upg[id]||0)+1;addLog(`${def.name} → Lv.${gs.upg[id]}`,"upgrade");recalc(gs);renderTab();sched();}
 
-// ── OVERLAY ─────────────────────────────────────────────────────
-function openOverlay(mode){overlayMode=mode;const ov=document.getElementById("overlay");const ob=document.getElementById("obox");if(!ov||!ob)return;ov.classList.add("show");ov.scrollTop=0;if(mode==="class")renderClassSelect(ob);else if(mode==="asc")renderAscOverlay(ob);else if(mode==="prestige")renderPrestigeOverlay(ob);}
-function closeOverlay(){const ov=document.getElementById("overlay");if(ov)ov.classList.remove("show");overlayMode=null;}
-function overlayBgClick(e){if(e.target===document.getElementById("overlay"))closeOverlay();}
+// OVERLAYS
+function openOv(mode){ovMode=mode;const ov=document.getElementById("ov");const ob=document.getElementById("obox");if(!ov||!ob)return;ov.classList.add("show");ov.scrollTop=0;if(mode==="class")renderClassSel(ob);else if(mode==="asc")renderAscOv(ob);else if(mode==="prestige")renderPresOv(ob);}
+function closeOv(){const ov=document.getElementById("ov");if(ov)ov.classList.remove("show");ovMode=null;}
+function ovBgClick(e){if(e.target===document.getElementById("ov"))closeOv();}
 
-function renderClassSelect(ob){ob.style.borderColor="#c89028";ob.style.maxWidth="620px";let h=`<h2>CHOOSE YOUR EXILE</h2><div class="osub">Each class has 3 unique Ascendancy paths.</div><div class="cg6">`;for(const[ck,cls]of Object.entries(CLASSES)){const ascList=Object.values(cls.asc).map(a=>`<span style="color:${a.color};font-size:9px">${a.name}</span>`).join(" · ");h+=`<div class="ccard" onclick="selectClass('${ck}')"><div class="ccico">${cls.ico}</div><div class="ccnm" style="color:${cls.color}">${cls.name}</div><div class="cctg">${cls.tag}</div><div class="ccbn">${cls.bonus}</div><div style="margin-top:6px;line-height:1.7">${ascList}</div></div>`;}h+=`</div>`;ob.innerHTML=h;}
-function renderAscOverlay(ob){if(!gs?.classKey){ob.innerHTML="<h2>No class</h2>";return;}const cls=CLASSES[gs.classKey];ob.style.borderColor="#c89028";ob.style.maxWidth="560px";if(!gs.ascKey){let h=`<h2>ASCENDANCY — ${cls.name.toUpperCase()}</h2><div class="osub">${gs.ascPoints} point(s) available. Choose your Ascendancy class.</div><div class="ag3">`;for(const[ak,asc]of Object.entries(cls.asc)){h+=`<div class="acard" onclick="chooseAsc('${ak}')" style="border-color:${asc.color}88"><div style="font-size:11px;font-weight:bold;color:${asc.color};margin-bottom:3px">${asc.name}</div><div style="font-size:9px;color:#786855;line-height:1.4">${asc.desc}</div></div>`;}h+=`</div><div class="obtnrow"><button class="osec" onclick="closeOverlay()">Cancel</button></div>`;ob.innerHTML=h;return;}const asc=cls.asc[gs.ascKey];let h=`<h2>${asc.name.toUpperCase()}</h2><div class="osub" style="color:${asc.color}">${asc.desc}</div><div style="font-size:10px;color:#786855;margin-bottom:8px">${gs.ascPoints} point(s) available · ${gs.ascTaken.length} nodes taken</div><div class="ang">`;for(const node of asc.nodes){const taken=gs.ascTaken.includes(node.id);const reqMet=!node.req||node.req.some(r=>gs.ascTaken.includes(r));const canT=!taken&&reqMet&&(gs.ascPoints||0)>=node.cost;h+=`<div class="anc${taken?" taken":!reqMet?" locked":""}" onclick="${canT?`takeAscNode('${node.id}')`:""}" style="border-color:${taken?asc.color:"#2c2015"}"><div class="anname" style="color:${taken?asc.color:"#c89028"}">${node.name}${taken?" ✦":""}</div><div class="antype">${node.t} · ${node.cost}pt</div><div class="andesc">${node.desc}</div></div>`;}h+=`</div><div class="obtnrow"><button class="osec" onclick="gs.ascKey=null;renderAscOverlay(document.getElementById('obox'))">← Change</button><button class="osec" onclick="closeOverlay()">Close</button></div>`;ob.innerHTML=h;}
-function chooseAsc(ak){gs.ascKey=ak;renderAscOverlay(document.getElementById("obox"));sched();}
-function takeAscNode(id){const cls=CLASSES[gs.classKey];if(!cls)return;const asc=cls.asc[gs.ascKey];if(!asc)return;const node=asc.nodes.find(x=>x.id===id);if(!node)return;if(gs.ascTaken.includes(id)||(gs.ascPoints||0)<node.cost)return;gs.ascTaken.push(id);gs.ascPoints-=node.cost;addLog(`Ascendancy: "${node.name}" taken!`,"asc");showNotif(node.name,"#f0b030");recalc(gs);updateAscBtn();renderAscOverlay(document.getElementById("obox"));sched();}
-function renderPrestigeOverlay(ob){ob.style.borderColor="#ee88ee";ob.style.maxWidth="460px";let h=`<h2 style="color:#ee88ee">PRESTIGE</h2><div class="osub">Reset everything. Grow exponentially stronger.<br>Points: <b style="color:#ee88ee;font-size:13px">${gs.prestigePts}</b></div><div style="font-size:9px;color:#c89028;letter-spacing:2px;border-bottom:1px solid #2c2015;padding-bottom:3px;margin-bottom:8px">PERMANENT UPGRADES</div>`;for(const pd of PUPS){const cnt=(gs.pUpgrades||{})[pd.id]||0;const can=(gs.prestigePts||0)>=pd.cost;h+=`<div class="pug" style="border-color:${can?"#ee88ee44":"#2c2015"}"><span style="font-size:14px">${pd.ico}</span><div style="flex:1"><div style="font-size:10px;color:#ee88ee">${pd.name}${cnt>0?` <b style="color:#f0b030">x${cnt}</b>`:""}</div><div style="font-size:9px;color:#786855">${pd.desc}</div></div><button onclick="buyPU('${pd.id}')" style="padding:2px 8px;font-size:9px;background:${can?"rgba(100,0,110,.4)":"transparent"};border:1px solid ${can?"#ee88ee":"#2c2015"};color:${can?"#ee88ee":"#2c2015"};cursor:${can?"pointer":"default"};font-family:Georgia,serif">${pd.cost}pt</button></div>`;}h+=`<div class="obtnrow"><button class="opri" style="border-color:#ee88ee;color:#ee88ee;background:#1a0820" onclick="doPrestige()">✦ PRESTIGE (1pt)</button><button class="osec" onclick="closeOverlay()">Cancel</button></div>`;ob.innerHTML=h;}
-function buyPU(id){const pd=PUPS.find(x=>x.id===id);if(!pd)return;if((gs.prestigePts||0)<pd.cost){showNotif("Not enough points!","#ff8844");return;}gs.pUpgrades=gs.pUpgrades||{};gs.pUpgrades[id]=(gs.pUpgrades[id]||0)+1;gs.prestigePts-=pd.cost;addLog(`Prestige upgrade "${pd.name}"!`,"prestige");recalc(gs);renderPrestigeOverlay(document.getElementById("obox"));sched();}
-function doPrestige(){if(!(gs.prestigePts>0)){showNotif("Not enough points!","#ff8844");return;}const newLvl=(gs.prestigeLvl||0)+1;addLog(`PRESTIGE Lv.${newLvl} — Returning stronger!`,"prestige");showNotif(`PRESTIGE Lv.${newLvl}`,"#ee88ee");const saved={prestigeLvl:newLvl,prestigePts:gs.prestigePts-1,pUpgrades:{...gs.pUpgrades},totalKills:gs.totalKills||0};const ck=gs.classKey;gs=Object.assign(makeInit(ck),saved);recalc(gs);gs.enemy=genEnemy(AREAS[0],AREAS[0].kills);skillCD=0;flaskTimers=Array(FLASK_SLOTS).fill(99999);activeBuffs=[];invincibleTimer=0;closeOverlay();updateAscBtn();setTab("passive");saveGame();}
+function renderClassSel(ob){ob.style.borderColor="#c89028";ob.style.maxWidth="640px";let h=`<h2>CHOOSE YOUR EXILE</h2><div class="osub">Each class shapes your starting stats and Ascendancy path.</div><div class="cg6">`;for(const[ck,c]of Object.entries(CLS)){const aList=Object.values(c.asc).map(a=>`<span style="color:${a.col};font-size:10px">${a.name}</span>`).join(" · ");h+=`<div class="ccard" onclick="selClass('${ck}')"><div class="ccico">${c.ico}</div><div class="ccnm" style="color:${c.col}">${c.name}</div><div class="cctg">${c.tag}</div><div class="ccbn">${c.bon}</div><div style="margin-top:7px;line-height:1.8">${aList}</div></div>`;}h+=`</div>`;ob.innerHTML=h;}
+function renderAscOv(ob){if(!gs?.ck){ob.innerHTML="<h2>No class</h2>";return;}const cls=CLS[gs.ck];ob.style.borderColor="#c89028";ob.style.maxWidth="580px";if(!gs.ascKey){let h=`<h2>ASCENDANCY — ${cls.name.toUpperCase()}</h2><div class="osub">${gs.ascPts} point(s) available. Choose your Ascendancy class.</div><div class="ag3">`;for(const[ak,a]of Object.entries(cls.asc)){h+=`<div class="acard" onclick="selAsc('${ak}')" style="border-color:${a.col}88"><div style="font-size:13px;font-weight:bold;color:${a.col};margin-bottom:4px">${a.name}</div><div style="font-size:11px;color:#786855;line-height:1.5">${a.desc}</div></div>`;}h+=`</div><div class="obr"><button class="osec" onclick="closeOv()">Cancel</button></div>`;ob.innerHTML=h;return;}const asc=cls.asc[gs.ascKey];let h=`<h2>${asc.name.toUpperCase()}</h2><div class="osub" style="color:${asc.col}">${asc.desc}</div><div style="font-size:11px;color:#786855;margin-bottom:10px">${gs.ascPts} point(s) available · ${gs.ascTaken.length} taken</div><div class="ang">`;for(const nd of asc.nodes){const tk=gs.ascTaken.includes(nd.id);const rm=!nd.q||nd.q.some(r=>gs.ascTaken.includes(r));const can=!tk&&rm&&(gs.ascPts||0)>=nd.cost;h+=`<div class="anc${tk?" tk":!rm?" lk":""}" onclick="${can?`takeAsc('${nd.id}')`:""}" style="border-color:${tk?asc.col:"#2c2015"}"><div class="ann" style="color:${tk?asc.col:"#c89028"}">${nd.n}${tk?" ✦":""}</div><div class="ant">${nd.t} · ${nd.cost}pt</div><div class="and">${nd.d}</div></div>`;}h+=`</div><div class="obr"><button class="osec" onclick="gs.ascKey=null;renderAscOv(document.getElementById('obox'))">← Change</button><button class="osec" onclick="closeOv()">Close</button></div>`;ob.innerHTML=h;}
+function selAsc(ak){gs.ascKey=ak;renderAscOv(document.getElementById("obox"));sched();}
+function takeAsc(id){const cls=CLS[gs.ck];if(!cls)return;const asc=cls.asc[gs.ascKey];if(!asc)return;const nd=asc.nodes.find(x=>x.id===id);if(!nd)return;if(gs.ascTaken.includes(id)||(gs.ascPts||0)<nd.cost)return;gs.ascTaken.push(id);gs.ascPts-=nd.cost;addLog(`Ascendancy: "${nd.n}" taken!`,"asc");showNotif(nd.n,"#f0b030");recalc(gs);updAscBtn();renderAscOv(document.getElementById("obox"));sched();}
+function renderPresOv(ob){ob.style.borderColor="#ee88ee";ob.style.maxWidth="460px";let h=`<h2 style="color:#ee88ee">PRESTIGE</h2><div class="osub">Reset everything. Grow exponentially stronger.<br>Points: <b style="color:#ee88ee;font-size:15px">${gs.presPts}</b></div><div style="font-size:9px;color:#c89028;letter-spacing:2px;border-bottom:1px solid #2c2015;padding-bottom:3px;margin-bottom:9px">PERMANENT UPGRADES</div>`;for(const pd of PUPS){const cnt=(gs.pUpg||{})[pd.id]||0;const can=(gs.presPts||0)>=pd.cost;h+=`<div class="pug" style="border-color:${can?"#ee88ee44":"#2c2015"}"><span style="font-size:17px">${pd.ico}</span><div style="flex:1"><div style="font-size:12px;color:#ee88ee">${pd.n}${cnt>0?` <b style="color:#f0b030">×${cnt}</b>`:""}</div><div style="font-size:10px;color:#786855">${pd.d}</div></div><button onclick="buyPU('${pd.id}')" style="padding:3px 10px;font-size:10px;background:${can?"rgba(100,0,110,.4)":"transparent"};border:1px solid ${can?"#ee88ee":"#2c2015"};color:${can?"#ee88ee":"#2c2015"};cursor:${can?"pointer":"default"};font-family:Georgia,serif;border-radius:2px">${pd.cost}pt</button></div>`;}h+=`<div class="obr"><button class="opri" style="border-color:#ee88ee;color:#ee88ee;background:#1a0820" onclick="doPrestige()">✦ PRESTIGE (costs 1pt)</button><button class="osec" onclick="closeOv()">Cancel</button></div>`;ob.innerHTML=h;}
+function buyPU(id){const pd=PUPS.find(x=>x.id===id);if(!pd)return;if((gs.presPts||0)<pd.cost){showNotif("Not enough!","#ff8844");return;}gs.pUpg=gs.pUpg||{};gs.pUpg[id]=(gs.pUpg[id]||0)+1;gs.presPts-=pd.cost;addLog(`Prestige upg "${pd.n}"!`,"prestige");recalc(gs);renderPresOv(document.getElementById("obox"));sched();}
+function doPrestige(){if(!(gs.presPts>0)){showNotif("Not enough points!","#ff8844");return;}const nL=(gs.presLv||0)+1;addLog(`🌟 PRESTIGE Lv.${nL}!`,"prestige");showNotif(`PRESTIGE Lv.${nL}`,"#ee88ee");const saved={presLv:nL,presPts:gs.presPts-1,pUpg:{...gs.pUpg},totalKills:gs.totalKills||0};const ck=gs.ck;gs=Object.assign(makeInit(ck),saved);recalc(gs);gs.enemy=genEnemy(AREAS[0],AREAS[0].kills);skillCD=0;flT=Array(FLS).fill(99999);aBuf=[];invT=0;closeOv();updAscBtn();setTab("pass");save();}
+function selClass(ck){gs=recalc(makeInit(ck));gs.enemy=genEnemy(AREAS[0],AREAS[0].kills);flT=Array(FLS).fill(99999);skillCD=0;aBuf=[];invT=0;closeOv();updAscBtn();renderTab();renderSF();renderBufStrip();addLog(`${CLS[ck].name} chosen. The hunt begins.`,"area");save();}
 
-function selectClass(ck){gs=recalc(makeInit(ck));gs.enemy=genEnemy(AREAS[0],AREAS[0].kills);flaskTimers=Array(FLASK_SLOTS).fill(99999);skillCD=0;activeBuffs=[];invincibleTimer=0;closeOverlay();updateAscBtn();renderTab();renderSkillFlaskBar();renderBuffStrip();addLog(`${CLASSES[ck].name} chosen. The hunt begins.`,"area");saveGame();}
-
-// ── INIT ─────────────────────────────────────────────────────────
+// INIT
 function init(){
-  setSdot("");
-  const saved=loadGame();
-  if(saved?.classKey&&CLASSES[saved.classKey]){
+  ssv("");const saved=load();
+  if(saved?.ck&&CLS[saved.ck]){
     gs=saved;
-    if(!Array.isArray(gs.allocated))gs.allocated=[];
+    if(!Array.isArray(gs.alloc))gs.alloc=[];
     if(!Array.isArray(gs.ascTaken))gs.ascTaken=[];
-    gs.pUpgrades=gs.pUpgrades||{};
-    gs.upgrades=gs.upgrades||{u0:0,u1:0,u2:0,u3:0,u4:0,u5:0,u6:0,u7:0,u8:0,u9:0};
-    gs.currency=gs.currency||{alt:0,alch:0,chaos:0,exalt:0};
-    gs.equip=gs.equip||{weapon:null,armor:null,helm:null,boots:null,ring:null};
-    gs.inventory=gs.inventory||[];
-    gs.se=gs.se||CLASSES[gs.classKey]?.se||{};
-    gs.mainGem=gs.mainGem||"g_cleave";
-    gs.supGems=gs.supGems||[null,null,null];
-    gs.equippedFlasks=gs.equippedFlasks||[{defId:"fl_life_s"},{defId:"fl_life_s"},null,null,null];
-    flaskTimers=Array(FLASK_SLOTS).fill(99999);skillCD=0;activeBuffs=[];
+    gs.pUpg=gs.pUpg||{};gs.upg=gs.upg||{u0:0,u1:0,u2:0,u3:0,u4:0,u5:0,u6:0,u7:0,u8:0,u9:0};
+    gs.cur=gs.cur||{alt:0,alch:0,chaos:0,exalt:0};
+    gs.eq=gs.eq||{weapon:null,armor:null,helm:null,boots:null,ring:null};
+    gs.inv=gs.inv||[];gs.se=gs.se||CLS[gs.ck]?.se||{};
+    gs.mg=gs.mg||"gc";gs.sg=gs.sg||[null,null,null];
+    gs.fl=gs.fl||[{id:"fl_ls"},{id:"fl_ls"},null,null,null];
+    flT=Array(FLS).fill(99999);skillCD=0;aBuf=[];invT=0;
     recalc(gs);
     const ai=Math.min(gs.areaIdx||0,AREAS.length-1);
-    const kl=Math.max(1,AREAS[ai].kills-(gs.kills||0));
-    gs.enemy=genEnemy(AREAS[ai],kl);
-    addLog(`Welcome back, ${CLASSES[gs.classKey].name}! (save restored)`,"area");
-    updateAscBtn();renderTab();renderSkillFlaskBar();renderBuffStrip();setSdot("ok");
-  }else{
-    openOverlay("class");
-  }
+    gs.enemy=genEnemy(AREAS[ai],Math.max(1,AREAS[ai].kills-(gs.kills||0)));
+    addLog(`Welcome back, ${CLS[gs.ck].name}! (save restored)`,"area");
+    updAscBtn();renderTab();renderSF();renderBufStrip();ssv("ok");
+  }else{openOv("class");}
   raf=requestAnimationFrame(tick);
 }
 init();
