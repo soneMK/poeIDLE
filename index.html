@@ -1,0 +1,1067 @@
+import { useState, useEffect, useRef, useCallback } from "react";
+
+// ── FONTS ─────────────────────────────────────────────────────────────
+{
+  const l = document.createElement("link");
+  l.rel = "stylesheet";
+  l.href = "https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap";
+  document.head.appendChild(l);
+}
+
+// ── GLOBAL STYLES ─────────────────────────────────────────────────────
+{
+  const s = document.createElement("style");
+  s.textContent = `
+    @keyframes fadeIn   { from{opacity:0;transform:translateY(3px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes bossGlow { 0%,100%{box-shadow:inset 0 0 0 2px rgba(200,80,0,.3)} 50%{box-shadow:inset 0 0 0 2px rgba(255,120,0,.8),0 0 24px rgba(180,60,0,.3)} }
+    @keyframes popIn    { 0%{opacity:0;transform:scale(.75)} 60%{transform:scale(1.08)} 100%{opacity:1;transform:scale(1)} }
+    @keyframes floatUp  { 0%{opacity:1;transform:translateY(0) translateX(-50%)} 100%{opacity:0;transform:translateY(-50px) translateX(-50%)} }
+    @keyframes pulsePt  { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.6;transform:scale(.97)} }
+    @keyframes shimmer  { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { background:#06050300; overflow:hidden; }
+    ::-webkit-scrollbar { width:4px; }
+    ::-webkit-scrollbar-track { background:#07060400; }
+    ::-webkit-scrollbar-thumb { background:#2a2010; border-radius:2px; }
+    button,input { font-family:'Crimson Text',serif; }
+  `;
+  document.head.appendChild(s);
+}
+
+// ── NUMBER FORMAT ─────────────────────────────────────────────────────
+const SUFFIXES = ["","K","M","B","T","Qa","Qi","Sx","Sp","Oc","No","Dc","UDc","DDc","TDc","QaDc","QiDc","SxDc","SpDc","OcDc","NoDc","Vg","UVg"];
+function fmt(n) {
+  if (!isFinite(n) || n === undefined || n === null) return "0";
+  if (n < 0) return "-" + fmt(-n);
+  if (n < 1000) return Math.floor(n).toString();
+  let i = 0;
+  while (n >= 1000 && i < SUFFIXES.length - 1) { n /= 1000; i++; }
+  const decimals = n >= 100 ? 0 : n >= 10 ? 1 : 2;
+  return n.toFixed(decimals) + SUFFIXES[i];
+}
+const fmtDps = n => fmt(n) + "/s";
+
+// ── THEME ─────────────────────────────────────────────────────────────
+const C = {
+  bg:     "#080605",
+  bg2:    "#0f0d09",
+  bg3:    "#171310",
+  panel:  "#0c0a07",
+  b:      "#2c2015",
+  bGlow:  "#5c3e1a",
+  gold:   "#c89028",
+  goldB:  "#f0b030",
+  goldD:  "#6a4e1a",
+  red:    "#cc3535",
+  blue:   "#3a78c8",
+  green:  "#38aa38",
+  purple: "#9858d8",
+  white:  "#e8dac5",
+  dim:    "#786855",
+  normal: "#c0c0c0",
+  magic:  "#8888ff",
+  rare:   "#ffff77",
+  unique: "#d47828",
+  prestige:"#ee88ee",
+  curr:   "#a89878",
+};
+
+const rarColor = r => ({ normal:C.normal, magic:C.magic, rare:C.rare, unique:C.unique, boss:"#ff8844" })[r] ?? C.normal;
+const logColor = c => ({ hit:C.white, crit:"#ffcc44", kill:C.green, level:"#88aaff", area:C.gold, drop:C.rare, unique:C.unique, currency:C.curr, passive:C.purple, prestige:C.prestige, upgrade:"#44ffcc", offline:C.goldB })[c] ?? C.white;
+
+// ── GAME DATA ─────────────────────────────────────────────────────────
+const AREAS = [
+  { name:"The Coast",           tier:1,  kills:20,  hp:80,      dmg:8       },
+  { name:"The Ledge",           tier:2,  kills:25,  hp:200,     dmg:22      },
+  { name:"Cavern of Wrath",     tier:3,  kills:30,  hp:520,     dmg:58      },
+  { name:"Flooded Depths",      tier:4,  kills:35,  hp:1400,    dmg:160     },
+  { name:"Fellshrine Ruins",    tier:5,  kills:40,  hp:3800,    dmg:440     },
+  { name:"The Dread Thicket",   tier:6,  kills:45,  hp:1.05e4,  dmg:1200    },
+  { name:"Crystal Veins",       tier:7,  kills:50,  hp:2.9e4,   dmg:3300    },
+  { name:"Desolate Isle",       tier:8,  kills:55,  hp:8e4,     dmg:9200    },
+  { name:"Vaal Temple",         tier:9,  kills:60,  hp:2.2e5,   dmg:2.6e4   },
+  { name:"Altar of Lunaris",    tier:10, kills:70,  hp:6.2e5,   dmg:7.4e4   },
+  { name:"Dread Citadel",       tier:11, kills:80,  hp:1.8e6,   dmg:2.1e5   },
+  { name:"The Vaal Pyramid",    tier:12, kills:90,  hp:5.1e6,   dmg:6.1e5   },
+  { name:"Shaper's Domain",     tier:13, kills:100, hp:1.5e7,   dmg:1.8e6   },
+  { name:"Elder's Realm",       tier:14, kills:120, hp:4.5e7,   dmg:5.5e6   },
+  { name:"Simulacrum",          tier:15, kills:150, hp:1.4e8,   dmg:1.7e7   },
+  { name:"The Void",            tier:16, kills:180, hp:4.5e8,   dmg:5.5e7   },
+  { name:"Abyss of Eternity",   tier:17, kills:220, hp:1.5e9,   dmg:1.8e8   },
+  { name:"Chaos Pinnacle",      tier:18, kills:270, hp:5.0e9,   dmg:6.2e8   },
+  { name:"Divine Sanctum",      tier:19, kills:340, hp:1.7e10,  dmg:2.1e9   },
+  { name:"The Infinite Realm",  tier:20, kills:420, hp:6.0e10,  dmg:7.5e9   },
+];
+
+const PASSIVES = [
+  { id:"p0",  row:0, col:0, type:"small",    short:"Phys",  name:"Brutal Strike",     desc:"+15% Phys Damage",             eff:{ physPct:15 } },
+  { id:"p1",  row:0, col:1, type:"small",    short:"Spd",   name:"Swift Strikes",     desc:"+10% Attack Speed",            eff:{ aspdPct:10 } },
+  { id:"p2",  row:0, col:2, type:"small",    short:"Arm",   name:"Iron Skin",         desc:"+20% Armour",                  eff:{ armPct:20 } },
+  { id:"p3",  row:0, col:3, type:"small",    short:"HP",    name:"Vitality",          desc:"+20% Max HP",                  eff:{ hpPct:20 } },
+  { id:"p4",  row:0, col:4, type:"small",    short:"Crit",  name:"Lucky Hit",         desc:"+5% Crit Chance",              eff:{ crit:5 } },
+  { id:"p5",  row:1, col:0, type:"notable",  short:"Slash", name:"Master of Slashing",desc:"+35% Phys Damage",             eff:{ physPct:35 }, req:["p0"] },
+  { id:"p6",  row:1, col:1, type:"notable",  short:"Dual",  name:"Dual Strike",       desc:"+25% Attack Speed",            eff:{ aspdPct:25 }, req:["p1"] },
+  { id:"p7",  row:1, col:2, type:"notable",  short:"Fort",  name:"Steel Fortress",    desc:"+50% Armour\n+15% Resistances",eff:{ armPct:50, resist:15 }, req:["p2"] },
+  { id:"p8",  row:1, col:3, type:"notable",  short:"Body",  name:"Iron Body",         desc:"+40% Max HP",                  eff:{ hpPct:40 }, req:["p3"] },
+  { id:"p9",  row:1, col:4, type:"notable",  short:"Lethal",name:"Lethal Blade",      desc:"+10% Crit Chance\n+80% Crit Multi",eff:{ crit:10, critM:80 }, req:["p4"] },
+  { id:"p10", row:2, col:0, type:"keystone", short:"CARNAGE",name:"Avatar of Carnage",desc:"+80% Phys Damage\n4% Life Leech",eff:{ physPct:80, leech:4 }, req:["p5"] },
+  { id:"p11", row:2, col:1, type:"notable",  short:"Gale",  name:"Gale Force",        desc:"+50% Atk Speed",               eff:{ aspdPct:50 }, req:["p6"] },
+  { id:"p12", row:2, col:2, type:"notable",  short:"Undying",name:"Undying Flesh",    desc:"+60% Max HP\n+30% Resistances", eff:{ hpPct:60, resist:30 }, req:["p7"] },
+  { id:"p13", row:2, col:3, type:"notable",  short:"Blood", name:"Blood Mage",        desc:"+50% Max HP\n+40% Phys Damage", eff:{ hpPct:50, physPct:40 }, req:["p8"] },
+  { id:"p14", row:2, col:4, type:"keystone", short:"STORMS",name:"Shaper of Storms",  desc:"+25% Crit\n+200% Crit Multi",   eff:{ crit:25, critM:200 }, req:["p9"] },
+];
+
+const UPGRADES = [
+  { id:"u0", name:"Sharp Blades",      icon:"⚔", desc:"+50% Phys Damage",   base:150,   mult:3.0, eff:{ physPct:50   }, max:25 },
+  { id:"u1", name:"Speed Potion",      icon:"⚡", desc:"+20% Attack Speed",  base:280,   mult:3.2, eff:{ aspdPct:20   }, max:20 },
+  { id:"u2", name:"Life Stone",        icon:"❤", desc:"+30% Max HP",        base:200,   mult:2.8, eff:{ hpPct:30     }, max:25 },
+  { id:"u3", name:"Iron Heart",        icon:"🛡", desc:"+40% Armour",        base:450,   mult:3.5, eff:{ armPct:40    }, max:20 },
+  { id:"u4", name:"Critical Mastery",  icon:"💀", desc:"+50% Crit Multi",    base:700,   mult:3.8, eff:{ critM:50     }, max:20 },
+  { id:"u5", name:"Currency Refinery", icon:"💰", desc:"+100% Currency Drop",base:1200,  mult:4.5, eff:{ currMult:1   }, max:15 },
+  { id:"u6", name:"Dark Power",        icon:"🔥", desc:"+100% Phys Damage",  base:7000,  mult:5.5, eff:{ physPct:100  }, max:15 },
+  { id:"u7", name:"Time Warp",         icon:"⏳", desc:"+50% Attack Speed",  base:2e4,   mult:7.0, eff:{ aspdPct:50   }, max:10 },
+  { id:"u8", name:"Undying Oath",      icon:"✨", desc:"+100% Max HP",       base:4.5e4, mult:7.0, eff:{ hpPct:100    }, max:10 },
+  { id:"u9", name:"Wrath of God",      icon:"🌟", desc:"+300% Phys Damage",  base:2e5,   mult:9.0, eff:{ physPct:300  }, max:8  },
+];
+
+const PRESTIGE_UPGRADES = [
+  { id:"q0", name:"Warlord's Crest",  icon:"👑", desc:"All Damage ×2 (permanent)", cost:1, eff:{ dmgMult:2     } },
+  { id:"q1", name:"Immortal Soul",    icon:"💎", desc:"Max HP ×2 (permanent)",     cost:1, eff:{ hpMult:2      } },
+  { id:"q2", name:"Time Conqueror",   icon:"⏱", desc:"Attack Speed ×1.5 (perm)",  cost:1, eff:{ aspdMult:1.5  } },
+  { id:"q3", name:"Currency Baron",   icon:"🪙", desc:"Currency Drop ×3 (perm)",   cost:2, eff:{ currMult:3    } },
+  { id:"q4", name:"Divine Power",     icon:"⚡", desc:"All Stats ×2 (permanent)",  cost:3, eff:{ allMult:2     } },
+];
+
+const ENEMY_POOL = ["Rhoa","Zombie","Skeleton","Sand Leaper","Goatman","Corrupted Soul","Vaal Guard","Storm Herald","Crypt Fiend","Blight Spawn","Abyssal Horror","Void Spawn"];
+const BOSS_POOL  = ["Merveil, the Twisted","Vaal Oversoul","Piety of Abomination","The Merciless King","Shavronne of Umbra","The Pale Council","Atziri, Queen of the Vaal","The Shaper","Sirus, Awakener of Worlds","The Maven"];
+const PREFIXES   = ["Brutal","Vile","Ancient","Twisted","Corrupted","Forsaken","Wretched","Eldritch","Infernal","Arcane","Blighted","Festering"];
+const SUFFIXES   = ["of Ruin","of Blight","of the Storm","of Agony","of Chaos","of Void","of Conquest","of Malice","of the Abyss","of Carnage"];
+const SLOT_NAMES = ["weapon","armor","helm","boots","ring"];
+const SLOT_BASES = {
+  weapon: ["Dagger","Sword","Axe","Mace","Bow","Staff","Wand","Blade"],
+  armor:  ["Leather Vest","Chain Mail","Plate Armour","Robe","Full Plate"],
+  helm:   ["Leather Cap","Chain Coif","Iron Helm","Wizard Hat","Crown"],
+  boots:  ["Leather Boots","Chain Boots","Iron Boots","Wizard Shoes","Swift Greaves"],
+  ring:   ["Copper Ring","Gold Ring","Sapphire Ring","Ruby Ring","Onyx Ring"],
+};
+const UNIQUES = [
+  { name:"Kaom's Heart",       slot:"armor",  stats:["+500% Max HP","All Res +20%"],            eff:{ hpPct:500 } },
+  { name:"Atziri's Disfavour", slot:"weapon", stats:["+300% Phys Dmg","Atk Speed +25%"],        eff:{ physPct:300, aspdPct:25 } },
+  { name:"Headhunter",         slot:"ring",   stats:["Steal Mods on Kill","+80% Max HP"],        eff:{ hpPct:80 } },
+  { name:"Starforge",          slot:"weapon", stats:["+400% Phys Dmg","All Phys → Lightning"],   eff:{ physPct:400 } },
+  { name:"Skin of the Lords",  slot:"armor",  stats:["+150% All Res","Bonus Passive"],            eff:{ hpPct:200, armPct:150 } },
+  { name:"The Saviour",        slot:"weapon", stats:["+200% Phys Dmg","Atk Speed +30%"],         eff:{ physPct:200, aspdPct:30 } },
+  { name:"Shaper's Touch",     slot:"ring",   stats:["+300% Max HP","All Damage +20%"],           eff:{ hpPct:300, physPct:20 } },
+  { name:"Kaom's Roots",       slot:"boots",  stats:["+400% Max HP","Cannot be Frozen"],          eff:{ hpPct:400 } },
+];
+const CURRENCY = [
+  { id:"alt",   short:"Alt",  name:"Orb of Alteration", weight:50, color:"#5566cc" },
+  { id:"alch",  short:"Alch", name:"Orb of Alchemy",    weight:20, color:"#cc7722" },
+  { id:"chaos", short:"Chaos",name:"Chaos Orb",         weight:5,  color:"#bb3388" },
+  { id:"exalt", short:"Ex",   name:"Exalted Orb",       weight:1,  color:"#f0b030" },
+];
+const CURR_VAL = { alt:1, alch:4, chaos:40, exalt:400 };
+
+// ── HELPERS ───────────────────────────────────────────────────────────
+const rnd   = (a, b) => a + Math.random() * (b - a);
+const ri    = (a, b) => Math.floor(rnd(a, b + 1));
+const pick  = a => a[Math.floor(Math.random() * a.length)];
+const cTotal= c => (c.alt||0)*CURR_VAL.alt + (c.alch||0)*CURR_VAL.alch + (c.chaos||0)*CURR_VAL.chaos + (c.exalt||0)*CURR_VAL.exalt;
+const upgC  = (d, lv) => Math.floor(d.base * Math.pow(d.mult, lv));
+const itemScore = item => {
+  if (!item?.eff) return 0;
+  const e = item.eff;
+  return (e.physPct||0)*3 + (e.hpPct||0)*1.5 + (e.armPct||0) + (e.aspdPct||0)*2;
+};
+
+function genItem(tier, rarOvr, pLvl = 0) {
+  const mult = 1 + pLvl * 0.6;
+  if (rarOvr === "unique" || Math.random() < 0.012) {
+    const u = pick(UNIQUES);
+    const eff = {};
+    for (const [k, v] of Object.entries(u.eff)) eff[k] = v * mult;
+    return { ...u, rarity:"unique", eff };
+  }
+  const rarity = rarOvr || (Math.random() < .07 ? "rare" : Math.random() < .25 ? "magic" : "normal");
+  const slot   = pick(SLOT_NAMES);
+  const base   = pick(SLOT_BASES[slot]);
+  const pB     = Math.floor((tier * 12 + ri(10,40)) * mult * (rarity === "rare" ? 1.8 : 1));
+  const hB     = Math.floor((tier * 15 + ri(15,50)) * mult * (rarity === "rare" ? 1.8 : 1));
+  let name, stats = [], eff = {};
+
+  if (rarity === "normal") {
+    name = base;
+  } else if (rarity === "magic") {
+    name = `${pick(PREFIXES)} ${base}`;
+    if (slot === "weapon")                 { stats = [`+${pB}% Phys Damage`];   eff = { physPct:pB }; }
+    else if (slot === "armor"||slot==="helm") { stats = [`+${hB}% Max HP`];    eff = { hpPct:hB }; }
+    else                                   { stats = [`+${Math.floor(pB*.7)}% Phys`]; eff = { physPct:Math.floor(pB*.7) }; }
+  } else {
+    name = `${pick(PREFIXES)} ${base} ${pick(SUFFIXES)}`;
+    const aB = ri(15, 40);
+    if (slot === "weapon") {
+      const sB = ri(15, 35);
+      stats = [`+${pB}% Phys Damage`, `+${sB}% Atk Speed`];
+      eff   = { physPct:pB, aspdPct:sB };
+    } else if (slot === "armor"||slot==="helm") {
+      stats = [`+${hB}% Max HP`, `+${aB}% Armour`];
+      eff   = { hpPct:hB, armPct:aB };
+    } else {
+      stats = [`+${Math.floor(pB*.9)}% Phys`, `+${hB}% Max HP`];
+      eff   = { physPct:Math.floor(pB*.9), hpPct:hB };
+    }
+  }
+  return { name, slot, rarity, stats, eff };
+}
+
+function genEnemy(area, killsLeft, pLvl = 0) {
+  const pm = Math.pow(2.5, pLvl);
+  if (killsLeft <= 1) {
+    return { name:pick(BOSS_POOL), rarity:"boss", maxHp:area.hp*15*pm, hp:area.hp*15*pm, dmg:area.dmg*4*pm, mods:["BOSS"] };
+  }
+  const r = Math.random();
+  const rarity = r < .03 ? "rare" : r < .2 ? "magic" : "normal";
+  const rHp    = rarity === "magic" ? 5 : rarity === "rare" ? 12 : 1;
+  const mods   = rarity === "rare"  ? [pick(["Burning","Frozen","Charged","Empowered"]), pick(["Regeneration","Barrier"])]
+               : rarity === "magic" ? [pick(["Burning","Frozen","Empowered"])] : [];
+  const base   = pick(ENEMY_POOL);
+  const name   = rarity === "rare"  ? `${pick(PREFIXES)} ${base} ${pick(SUFFIXES)}`
+               : rarity === "magic" ? `Mutant ${base}` : base;
+  return { name, rarity, maxHp:area.hp*rHp*pm, hp:area.hp*rHp*pm, dmg:area.dmg*(rarity==="rare"?1.8:rarity==="magic"?1.3:1)*pm, mods };
+}
+
+// ── RECALC STATS ──────────────────────────────────────────────────────
+function recalc(s) {
+  let pp=0, ap=0, hp=0, ar=0, res=0, ll=0, cr=0, cm=0;
+  let dmM=1, hpM=1, asM=1, cuM=1;
+
+  // Passives
+  for (const id of s.allocated) {
+    const n = PASSIVES.find(x => x.id === id);
+    if (!n) continue;
+    const e = n.eff;
+    if (e.physPct) pp += e.physPct; if (e.aspdPct) ap += e.aspdPct;
+    if (e.hpPct)   hp += e.hpPct;  if (e.armPct)  ar += e.armPct;
+    if (e.crit)    cr += e.crit;   if (e.critM)   cm += e.critM;
+    if (e.resist)  res += e.resist; if (e.leech)   ll += e.leech;
+  }
+  // Upgrades
+  for (const def of UPGRADES) {
+    const lv = s.upgrades[def.id] || 0;
+    if (!lv) continue;
+    const e = def.eff;
+    if (e.physPct)  pp += e.physPct * lv;  if (e.aspdPct)  ap += e.aspdPct * lv;
+    if (e.hpPct)    hp += e.hpPct * lv;    if (e.armPct)   ar += e.armPct * lv;
+    if (e.critM)    cm += e.critM * lv;    if (e.currMult) cuM *= (1 + e.currMult * lv);
+  }
+  // Equipment
+  for (const item of Object.values(s.equip)) {
+    if (!item?.eff) continue;
+    const e = item.eff;
+    if (e.physPct) pp += e.physPct; if (e.aspdPct) ap += e.aspdPct;
+    if (e.hpPct)   hp += e.hpPct;  if (e.armPct)  ar += e.armPct;
+    if (e.crit)    cr += e.crit;   if (e.critM)   cm += e.critM;
+    if (e.resist)  res += e.resist; if (e.leech)   ll += e.leech;
+  }
+  // Prestige permanent upgrades
+  for (const [id, cnt] of Object.entries(s.pUpgrades || {})) {
+    if (!cnt) continue;
+    const pd = PRESTIGE_UPGRADES.find(x => x.id === id);
+    if (!pd) continue;
+    const e = pd.eff;
+    if (e.dmgMult)  dmM *= Math.pow(e.dmgMult,  cnt);
+    if (e.hpMult)   hpM *= Math.pow(e.hpMult,   cnt);
+    if (e.aspdMult) asM *= Math.pow(e.aspdMult, cnt);
+    if (e.currMult) cuM *= Math.pow(e.currMult, cnt);
+    if (e.allMult)  { dmM *= Math.pow(e.allMult,cnt); hpM *= Math.pow(e.allMult,cnt); asM *= Math.pow(e.allMult,cnt); }
+  }
+
+  const pMult   = (1 + pp / 100) * dmM;
+  const aspdFin = Math.min(s.baseAspd * (1 + ap / 100) * asM, 20);
+  const hpFin   = Math.floor(s.baseHp * (1 + hp / 100) * hpM);
+  const arFin   = Math.floor(s.baseArm * (1 + ar / 100));
+
+  return {
+    ...s,
+    physMin:    Math.floor(s.basePhysMin * pMult),
+    physMax:    Math.floor(s.basePhysMax * pMult),
+    aspd:       aspdFin,
+    critChance: Math.min(s.baseCrit + cr, 95),
+    critMulti:  s.baseCritM + cm,
+    maxHp:      hpFin,
+    hp:         Math.min(s.hp > 0 ? s.hp : hpFin, hpFin),
+    armor:      arFin,
+    resist:     Math.min(res, 90),
+    leech:      ll,
+    currMult:   cuM,
+  };
+}
+
+function makeInit() {
+  return {
+    level:1, exp:0, expNext:100, passivePoints:0, allocated:new Set(),
+    areaIdx:0, kills:0, totalKills:0,
+    prestigeLvl:0, prestigePts:0, pUpgrades:{},
+    baseHp:200, baseArm:50, basePhysMin:5, basePhysMax:12, baseAspd:1.2, baseCrit:5, baseCritM:150,
+    upgrades:{ u0:0,u1:0,u2:0,u3:0,u4:0,u5:0,u6:0,u7:0,u8:0,u9:0 },
+    currency:{ alt:0, alch:0, chaos:0, exalt:0 },
+    equip:{ weapon:null, armor:null, helm:null, boots:null, ring:null },
+    inventory:[],
+    lastOnline: Date.now(),
+  };
+}
+
+// ── OFFLINE CALC ──────────────────────────────────────────────────────
+function calcOfflineRewards(s, offlineSec) {
+  if (offlineSec < 10) return null;
+  const area   = AREAS[Math.min(s.areaIdx, AREAS.length - 1)];
+  const dps    = ((s.physMin + s.physMax) / 2) * s.aspd * (1 + (s.critChance/100) * (s.critMulti/100 - 1));
+  const eHp    = area.hp * Math.pow(2.5, s.prestigeLvl || 0);
+  const killRate= dps / eHp;                         // kills/s
+  const kills  = Math.floor(killRate * offlineSec);
+  // Currency
+  const avgCurrPerKill = 0.35 * (s.currMult || 1) * (CURR_VAL.alt*0.5 + CURR_VAL.alch*0.2 + CURR_VAL.chaos*0.05 + CURR_VAL.exalt*0.01);
+  const currEarned = Math.floor(kills * avgCurrPerKill);
+  // EXP
+  const expGained = Math.floor(kills * (12 + area.tier * 8) * 0.5);
+  return { kills, currEarned, expGained, seconds: offlineSec };
+}
+
+// ── MAIN COMPONENT ────────────────────────────────────────────────────
+export default function App() {
+  const [gs, setGs]       = useState(() => {
+    const s = recalc(makeInit());
+    return { ...s, enemy: genEnemy(AREAS[0], AREAS[0].kills, 0) };
+  });
+  const [log, setLog]     = useState([{ id:0, text:"⚔ Welcome to Wraeclast. The hunt begins.", cls:"area" }]);
+  const [notifs, setNotifs] = useState([]);
+  const [tab, setTab]     = useState("passive");
+  const [modal, setModal] = useState(false);             // prestige modal
+  const [offlineModal, setOfflineModal] = useState(null);// offline rewards
+  const [floats, setFloats] = useState([]);
+  const logId = useRef(1), nId = useRef(0), fId = useRef(0);
+  const enemyRef = useRef(null);
+
+  const addLog = useCallback((text, cls="hit") => {
+    const id = logId.current++;
+    setLog(p => [{ id, text, cls }, ...p.slice(0, 89)]);
+  }, []);
+
+  const showNotif = useCallback((text, cls="") => {
+    const id = nId.current++;
+    setNotifs(p => [...p, { id, text, cls }]);
+    setTimeout(() => setNotifs(p => p.filter(n => n.id !== id)), 2400);
+  }, []);
+
+  const addFloat = useCallback((text, color) => {
+    const box = enemyRef.current?.getBoundingClientRect();
+    if (!box) return;
+    const id = fId.current++;
+    const x  = box.left + box.width / 2;
+    const y  = box.top + 18;
+    setFloats(p => [...p, { id, text, color, x, y }]);
+    setTimeout(() => setFloats(p => p.filter(f => f.id !== id)), 900);
+  }, []);
+
+  // ── OFFLINE REWARD CHECK ────────────────────────────────────────────
+  useEffect(() => {
+    setGs(prev => {
+      const now    = Date.now();
+      const offSec = Math.floor((now - (prev.lastOnline || now)) / 1000);
+      const result = calcOfflineRewards(prev, offSec);
+      if (!result || result.kills < 1) return { ...prev, lastOnline: now };
+      setOfflineModal(result);
+      // Apply rewards
+      let s = { ...prev, lastOnline: now };
+      s.currency = { ...s.currency, chaos: s.currency.chaos + Math.floor(result.currEarned / CURR_VAL.chaos) };
+      s.exp += result.expGained;
+      s.totalKills = (s.totalKills || 0) + result.kills;
+      while (s.exp >= s.expNext) {
+        s.exp -= s.expNext; s.level++; s.passivePoints++;
+        s.baseHp  = Math.floor(s.baseHp  * 1.08);
+        s.baseArm = Math.floor(s.baseArm * 1.05);
+        s.expNext = Math.floor(100 * Math.pow(1.22, s.level - 1));
+      }
+      return recalc(s);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── GAME LOOP ────────────────────────────────────────────────────────
+  useEffect(() => {
+    let last = null, combatT = 0, regenT = 0, raf;
+    function tick(ts) {
+      if (!last) last = ts;
+      const dt = Math.min(ts - last, 200); last = ts;
+      setGs(prev => {
+        if (!prev.enemy) return prev;
+        let s = { ...prev };
+        combatT += dt; regenT += dt;
+        // Regen
+        if (regenT >= 500) { regenT -= 500; s.hp = Math.min(s.maxHp, s.hp + s.maxHp * 0.008); }
+        const ai = 1000 / s.aspd;
+        if (combatT < ai) return s;
+        combatT -= ai;
+
+        // Player attacks
+        const bDmg = s.physMin + Math.random() * (s.physMax - s.physMin);
+        const isCrit = Math.random() * 100 < s.critChance;
+        let dmg = Math.max(1, Math.floor(isCrit ? bDmg * (s.critMulti / 100) : bDmg));
+        const enemy = { ...s.enemy, hp: s.enemy.hp - dmg };
+        if (s.leech > 0) s.hp = Math.min(s.maxHp, s.hp + dmg * s.leech / 100);
+        addFloat(fmt(dmg), isCrit ? "#ffcc44" : "#e8dac5");
+        if (isCrit) addLog(`💥 CRIT! Hit ${enemy.name} for ${fmt(dmg)}`, "crit");
+        else        addLog(`Hit ${enemy.name} for ${fmt(dmg)}`, "hit");
+
+        // Enemy retaliates
+        const mit = Math.min(0.92, s.armor / (s.armor + 500));
+        const rMit = Math.min(0.75, s.resist / 100);
+        const eDmg = Math.max(1, Math.floor(enemy.dmg * (1 - mit) * (1 - rMit)));
+        s.hp = Math.max(0, s.hp - eDmg);
+        if (enemy.mods.includes("Regeneration")) enemy.hp = Math.min(enemy.maxHp, enemy.hp + eDmg * 0.2);
+
+        // Enemy dies
+        if (enemy.hp <= 0) {
+          const area  = AREAS[Math.min(s.areaIdx, AREAS.length - 1)];
+          const kills = s.kills + 1;
+          s.totalKills = (s.totalKills || 0) + 1;
+          addLog(`✓ Slew ${enemy.name}!`, "kill");
+
+          // EXP
+          const eg = Math.floor((15 + area.tier * 8) *
+            (enemy.rarity==="boss"?30 : enemy.rarity==="rare"?8 : enemy.rarity==="magic"?3 : 1));
+          s.exp += eg;
+          while (s.exp >= s.expNext) {
+            s.exp -= s.expNext; s.level++; s.passivePoints++;
+            s.baseHp  = Math.floor(s.baseHp  * 1.08);
+            s.baseArm = Math.floor(s.baseArm * 1.05);
+            s.expNext = Math.floor(100 * Math.pow(1.22, s.level - 1));
+            addLog(`⬆ Level Up! Now Lv.${s.level} — Passive point gained!`, "level");
+            showNotif(`LEVEL UP  Lv.${s.level}`, "level");
+            s = recalc(s);
+          }
+
+          // Currency drop
+          const cTot = CURRENCY.reduce((a, c) => a + c.weight, 0);
+          let cRoll = Math.random() * cTot, cCum = 0;
+          for (const c of CURRENCY) {
+            cCum += c.weight;
+            if (cRoll < cCum) {
+              if (Math.random() < 0.38 || enemy.rarity !== "normal") {
+                const qty  = enemy.rarity === "boss" ? ri(3, 10) : 1;
+                const mult = Math.max(1, Math.floor(s.currMult || 1));
+                const tot  = qty * mult;
+                s.currency = { ...s.currency, [c.id]: s.currency[c.id] + tot };
+                addLog(tot > 1 ? `💰 ${c.name} ×${tot} (×${mult} bonus)` : `💰 ${c.name}`, "currency");
+              }
+              break;
+            }
+          }
+
+          // Item drop
+          const ir = Math.random();
+          const dr = enemy.rarity === "boss" ? (Math.random() < .2 ? "unique" : "rare")
+                   : ir < .012 ? "unique" : ir < .08 ? "rare" : ir < .3 ? "magic" : ir < .55 ? "normal" : null;
+          if (dr) {
+            const item = genItem(area.tier, dr, s.prestigeLvl || 0);
+            const cs   = itemScore(s.equip[item.slot]);
+            const ns   = itemScore(item);
+            let eq = { ...s.equip }, inv = [...s.inventory];
+            if (ns > cs) {
+              if (s.equip[item.slot]) inv = [...inv, s.equip[item.slot]].slice(-20);
+              eq[item.slot] = item;
+              addLog(`🛡 Auto-equipped ${item.name}!`, "kill");
+            } else {
+              inv = [...inv, item].slice(-20);
+            }
+            s.equip = eq; s.inventory = inv;
+            if (item.rarity === "unique")  { addLog(`✨ UNIQUE FOUND: ${item.name}`, "unique"); showNotif(`⚡ ${item.name}`, "unique"); }
+            else if (item.rarity !== "normal") addLog(`🎁 ${item.rarity==="rare"?"★":"◆"} ${item.name}`, "drop");
+            s = recalc(s);
+          }
+
+          // Prestige point at max area
+          if (s.areaIdx >= AREAS.length - 1 && kills >= area.kills) {
+            s.prestigePts = (s.prestigePts || 0) + 1;
+            addLog("🏆 Max area loop! +1 Prestige Point!", "prestige");
+            showNotif("✦ +1 Prestige Point!", "prestige");
+          }
+
+          // Area complete
+          if (kills >= area.kills) {
+            s.kills = 0;
+            const next = Math.min(s.areaIdx + 1, AREAS.length - 1);
+            if (next !== s.areaIdx) { addLog(`🗺 Cleared "${area.name}" → ${AREAS[next].name} T${AREAS[next].tier}`, "area"); showNotif(`T${AREAS[next].tier} ${AREAS[next].name}`, "area"); }
+            s.areaIdx = next;
+            s.enemy   = genEnemy(AREAS[next], AREAS[next].kills, s.prestigeLvl || 0);
+          } else {
+            s.kills = kills;
+            s.enemy = genEnemy(area, area.kills - kills, s.prestigeLvl || 0);
+          }
+          if (s.hp <= 0) { s.hp = Math.floor(s.maxHp * 0.25); addLog("💀 Defeated... Resurrected.", "level"); }
+          return s;
+        }
+
+        // Enemy survives
+        s.enemy = enemy;
+        if (s.hp <= 0) { s.hp = Math.floor(s.maxHp * 0.25); addLog("💀 Defeated... Resurrected.", "level"); s.enemy = { ...enemy, hp: enemy.maxHp }; }
+        return s;
+      });
+      raf = requestAnimationFrame(tick);
+    }
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [addLog, showNotif, addFloat]);
+
+  // ── ACTIONS ──────────────────────────────────────────────────────────
+  const allocPassive = useCallback(node => {
+    setGs(prev => {
+      if (prev.allocated.has(node.id) || prev.passivePoints <= 0) return prev;
+      const ok = !node.req || node.req.some(r => prev.allocated.has(r)) || prev.allocated.size === 0;
+      if (!ok) { showNotif("Prerequisite node required!", "warn"); return prev; }
+      const al = new Set(prev.allocated); al.add(node.id);
+      addLog(`✦ Passive "${node.name}" allocated!`, "passive");
+      return recalc({ ...prev, allocated:al, passivePoints:prev.passivePoints - 1 });
+    });
+  }, [showNotif, addLog]);
+
+  const buyUpgrade = useCallback(def => {
+    setGs(prev => {
+      const lv   = prev.upgrades[def.id] || 0;
+      if (lv >= def.max) return prev;
+      const cost = upgC(def, lv);
+      const tot  = cTotal(prev.currency);
+      if (tot < cost) { showNotif("Not enough currency!", "warn"); return prev; }
+      let rem = cost;
+      const cur = { ...prev.currency };
+      for (const c of [...CURRENCY].reverse()) {
+        const spend = Math.min(cur[c.id], Math.ceil(rem / CURR_VAL[c.id]));
+        cur[c.id] -= spend; rem -= spend * CURR_VAL[c.id];
+        if (rem <= 0) break;
+      }
+      addLog(`⬆ ${def.name} → Lv.${lv + 1}`, "upgrade");
+      return recalc({ ...prev, upgrades:{ ...prev.upgrades, [def.id]:lv+1 }, currency:cur });
+    });
+  }, [showNotif, addLog]);
+
+  const doPrestige = useCallback(() => {
+    setGs(prev => {
+      if (!(prev.prestigePts > 0)) { showNotif("Not enough Prestige Points!", "warn"); return prev; }
+      const newLvl = (prev.prestigeLvl || 0) + 1;
+      addLog(`🌟 PRESTIGE Lv.${newLvl} — Reset complete. Returning stronger!`, "prestige");
+      showNotif(`✦ PRESTIGE Lv.${newLvl} ✦`, "prestige");
+      const base = makeInit();
+      const s    = recalc({ ...base, prestigeLvl:newLvl, prestigePts:(prev.prestigePts||0)-1, pUpgrades:prev.pUpgrades||{}, totalKills:prev.totalKills||0, lastOnline:Date.now() });
+      return { ...s, enemy:genEnemy(AREAS[0], AREAS[0].kills, newLvl) };
+    });
+    setModal(false);
+  }, [showNotif, addLog]);
+
+  const buyPrestigeUp = useCallback(pd => {
+    setGs(prev => {
+      if ((prev.prestigePts || 0) < pd.cost) { showNotif("Not enough Prestige Points!", "warn"); return prev; }
+      const pu = { ...(prev.pUpgrades||{}), [pd.id]:((prev.pUpgrades||{})[pd.id]||0)+1 };
+      addLog(`👑 Prestige upgrade "${pd.name}" purchased!`, "prestige");
+      return recalc({ ...prev, pUpgrades:pu, prestigePts:(prev.prestigePts||0)-pd.cost });
+    });
+  }, [showNotif, addLog]);
+
+  const equipFromInv = useCallback(idx => {
+    setGs(prev => {
+      const item = prev.inventory[idx]; if (!item) return prev;
+      let inv = [...prev.inventory], eq = { ...prev.equip };
+      const old = eq[item.slot]; eq[item.slot] = item; inv.splice(idx, 1);
+      if (old) inv = [old, ...inv].slice(0, 20);
+      addLog(`🛡 Equipped ${item.name}`, "kill");
+      return recalc({ ...prev, equip:eq, inventory:inv });
+    });
+  }, [addLog]);
+
+  // ── DERIVED ──────────────────────────────────────────────────────────
+  const area    = AREAS[Math.min(gs.areaIdx, AREAS.length - 1)];
+  const hpPct   = Math.max(0, gs.hp / gs.maxHp * 100);
+  const expPct  = Math.min(100, gs.exp / gs.expNext * 100);
+  const killPct = gs.kills / area.kills * 100;
+  const eHpPct  = gs.enemy ? Math.max(0, gs.enemy.hp / gs.enemy.maxHp * 100) : 0;
+  const avgDmg  = (gs.physMin + gs.physMax) / 2;
+  const cMul    = 1 + (gs.critChance / 100) * (gs.critMulti / 100 - 1);
+  const dps     = avgDmg * gs.aspd * cMul;
+  const ctot    = cTotal(gs.currency);
+
+  // ── RENDER ────────────────────────────────────────────────────────────
+  return (
+    <div style={{ display:"grid", gridTemplateColumns:"196px 1fr 248px", gridTemplateRows:"48px 1fr",
+      height:"100vh", background:C.bg, color:C.white, fontFamily:"'Crimson Text',serif", overflow:"hidden" }}>
+
+      {/* Floating damage numbers */}
+      {floats.map(f => (
+        <div key={f.id} style={{ position:"fixed", left:f.x, top:f.y, pointerEvents:"none", zIndex:9999,
+          color:f.color, fontFamily:"Cinzel,serif", fontWeight:700, fontSize:13,
+          animation:"floatUp .9s ease forwards", textShadow:"0 1px 6px rgba(0,0,0,.9)" }}>
+          {f.text}
+        </div>
+      ))}
+
+      {/* Modals */}
+      {modal && <PrestigeModal gs={gs} onPrestige={doPrestige} onBuy={buyPrestigeUp} onClose={() => setModal(false)} />}
+      {offlineModal && <OfflineModal data={offlineModal} onClose={() => setOfflineModal(null)} />}
+
+      {/* ── HEADER ── */}
+      <header style={{ gridColumn:"1/-1", background:`linear-gradient(180deg,#1a1208,${C.bg2})`,
+        borderBottom:`1px solid ${C.bGlow}`, display:"flex", alignItems:"center", gap:14, padding:"0 14px",
+        boxShadow:"0 2px 20px rgba(200,149,42,.15)" }}>
+        <span style={{ fontFamily:"Cinzel,serif", fontSize:15, color:C.goldB, letterSpacing:4,
+          textShadow:"0 0 20px rgba(240,180,48,.5)", whiteSpace:"nowrap" }}>⚔ PATH OF IDLE</span>
+
+        <Badge label="Lv"      val={gs.level} />
+        <Badge label="DPS"     val={fmtDps(dps)} color={C.goldB} />
+        <Badge label="Kills"   val={fmt(gs.totalKills || 0)} />
+        <Badge label="Prestige"val={gs.prestigeLvl || 0} color={C.prestige} />
+
+        {/* EXP bar */}
+        <div style={{ flex:1, display:"flex", flexDirection:"column", gap:1 }}>
+          <div style={{ height:4, background:C.bg3, border:`1px solid ${C.b}`, borderRadius:2, overflow:"hidden" }}>
+            <div style={{ height:"100%", width:expPct+"%", background:`linear-gradient(90deg,${C.goldD},${C.gold})`, transition:"width .25s" }} />
+          </div>
+          <div style={{ fontSize:9, color:C.dim, textAlign:"right" }}>{fmt(gs.exp)} / {fmt(gs.expNext)} EXP</div>
+        </div>
+
+        <div style={{ fontSize:11, color:C.dim, fontStyle:"italic", whiteSpace:"nowrap" }}>
+          <span style={{ color:C.gold, fontFamily:"Cinzel,serif", fontStyle:"normal" }}>{area.name}</span>
+          <span style={{ color:C.goldD }}> T{area.tier}</span>
+        </div>
+
+        {gs.prestigePts > 0 && (
+          <button onClick={() => setModal(true)} style={{ background:"linear-gradient(135deg,#2a0030,#550060)",
+            border:`1px solid ${C.prestige}`, color:C.prestige, padding:"4px 10px", cursor:"pointer",
+            fontFamily:"Cinzel,serif", fontSize:10, letterSpacing:1, animation:"pulsePt 1.5s infinite" }}>
+            ✦ PRESTIGE ({gs.prestigePts}pt)
+          </button>
+        )}
+      </header>
+
+      {/* ── LEFT PANEL ── */}
+      <aside style={{ background:C.panel, borderRight:`1px solid ${C.b}`, overflowY:"auto", padding:10,
+        display:"flex", flexDirection:"column", gap:7 }}>
+        <PanelTitle>Character</PanelTitle>
+
+        {/* HP bar */}
+        <div>
+          <div style={{ display:"flex", justifyContent:"space-between", fontSize:10, marginBottom:2 }}>
+            <span style={{ color:C.dim }}>Life</span>
+            <span style={{ color:C.red, fontFamily:"Cinzel,serif" }}>{fmt(Math.floor(gs.hp))} / {fmt(gs.maxHp)}</span>
+          </div>
+          <div style={{ height:8, background:C.bg3, border:"1px solid #3a0f0f", borderRadius:2, overflow:"hidden" }}>
+            <div style={{ height:"100%", width:hpPct+"%", background:"linear-gradient(90deg,#5a0000,#cc3333)", transition:"width .12s" }} />
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div style={{ display:"flex", flexDirection:"column", gap:2 }}>
+          {[
+            ["Phys Damage",  `${fmt(gs.physMin)}–${fmt(gs.physMax)}`],
+            ["DPS",          fmtDps(dps), C.goldB],
+            ["Attack Speed", `${gs.aspd.toFixed(2)}/s`],
+            ["Crit",         `${gs.critChance.toFixed(0)}% / ${gs.critMulti}%`],
+            ["Armour",       fmt(gs.armor)],
+            ["Resistance",   `${gs.resist.toFixed(0)}%`],
+            ["Currency",     fmt(ctot), C.curr],
+            ["Curr Mult",    `×${(gs.currMult||1).toFixed(1)}`, C.curr],
+          ].map(([k, v, col]) => (
+            <div key={k} style={{ display:"flex", justifyContent:"space-between", fontSize:11 }}>
+              <span style={{ color:C.dim }}>{k}</span>
+              <span style={{ color:col||C.white, fontWeight:600, fontFamily:"Cinzel,serif", fontSize:10 }}>{v}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Equipment */}
+        <PanelTitle style={{ marginTop:4 }}>Equipment</PanelTitle>
+        {[["weapon","Weapon"],["armor","Body"],["helm","Helm"],["boots","Boots"],["ring","Ring"]].map(([slot,label]) => {
+          const item = gs.equip[slot];
+          return (
+            <div key={slot} style={{ background:C.bg3, border:`1px solid ${item ? rarColor(item.rarity)+"77" : C.b}`,
+              borderRadius:2, padding:"3px 6px" }}>
+              <div style={{ fontSize:9, color:C.dim }}>{label}</div>
+              <div style={{ fontSize:9, color:item ? rarColor(item.rarity) : C.b, lineHeight:1.3 }}>
+                {item ? item.name.slice(0,24)+(item.name.length>24?"…":"") : "—"}
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Currency */}
+        <PanelTitle style={{ marginTop:4 }}>Currency</PanelTitle>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:3 }}>
+          {CURRENCY.map(c => (
+            <div key={c.id} style={{ display:"flex", alignItems:"center", gap:4 }}>
+              <div style={{ width:16, height:16, borderRadius:"50%", border:`1px solid ${c.color}`,
+                background:c.color+"22", display:"flex", alignItems:"center", justifyContent:"center",
+                fontSize:7, fontWeight:900, color:c.color, flexShrink:0 }}>{c.short[0]}</div>
+              <div>
+                <div style={{ fontSize:9, color:C.dim, lineHeight:1 }}>{c.short}</div>
+                <div style={{ fontSize:10, color:C.curr, fontFamily:"Cinzel,serif", fontWeight:600, lineHeight:1 }}>{fmt(gs.currency[c.id])}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </aside>
+
+      {/* ── CENTER ── */}
+      <main style={{ display:"flex", flexDirection:"column", overflow:"hidden" }}>
+        {/* Map progress */}
+        <div style={{ background:C.bg2, borderBottom:`1px solid ${C.b}`, padding:"6px 12px",
+          display:"flex", alignItems:"center", gap:10 }}>
+          <div style={{ fontFamily:"Cinzel,serif", fontSize:10, padding:"2px 8px",
+            background:C.bg3, border:`1px solid ${C.goldD}`, color:C.gold, whiteSpace:"nowrap" }}>
+            T{area.tier}
+          </div>
+          <div style={{ flex:1, height:6, background:C.bg3, border:`1px solid ${C.b}`, borderRadius:1, overflow:"hidden" }}>
+            <div style={{ height:"100%", width:killPct+"%", background:`linear-gradient(90deg,${C.goldD},${C.gold})`, transition:"width .06s" }} />
+          </div>
+          <span style={{ color:C.dim, fontSize:11, whiteSpace:"nowrap" }}>
+            <span style={{ color:C.white }}>{gs.kills}</span>/{area.kills} kills
+          </span>
+        </div>
+
+        {/* Enemy */}
+        {gs.enemy && (
+          <div ref={enemyRef} style={{
+            margin:"10px 12px 0",
+            background:`radial-gradient(ellipse,rgba(${gs.enemy.rarity==="boss"?"110,40,0":"75,18,18"},.12) 0%,transparent 70%), ${C.bg2}`,
+            border:`1px solid ${gs.enemy.rarity==="boss" ? "#804010" : C.b}`,
+            padding:"9px 12px",
+            animation:gs.enemy.rarity==="boss" ? "bossGlow 1.2s infinite" : "none",
+          }}>
+            <div style={{ display:"flex", alignItems:"baseline", gap:8, marginBottom:5 }}>
+              <span style={{ fontFamily:"Cinzel,serif", fontSize:gs.enemy.rarity==="boss"?15:13,
+                color:rarColor(gs.enemy.rarity),
+                textShadow:gs.enemy.rarity!=="normal"?`0 0 10px ${rarColor(gs.enemy.rarity)}88`:"none" }}>
+                {gs.enemy.name}
+              </span>
+              <div style={{ display:"flex", gap:3 }}>
+                {gs.enemy.mods.map(m => (
+                  <span key={m} style={{ fontSize:9, padding:"1px 4px", fontStyle:"italic",
+                    background:"rgba(180,75,15,.22)", color:"#ff8844", border:"1px solid #883311", borderRadius:2 }}>{m}</span>
+                ))}
+              </div>
+            </div>
+            <div style={{ height:8, background:C.bg3, border:`1px solid ${C.b}`, borderRadius:1, overflow:"hidden", position:"relative" }}>
+              <div style={{ height:"100%", width:eHpPct+"%", background:"linear-gradient(90deg,#480000,#bb1111)", transition:"width .08s" }} />
+              <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center",
+                fontSize:9, color:C.white, fontFamily:"Cinzel,serif" }}>
+                {fmt(Math.max(0, Math.floor(gs.enemy.hp)))} / {fmt(gs.enemy.maxHp)}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Combat log */}
+        <div style={{ flex:1, margin:"8px 12px 10px", background:C.bg2, border:`1px solid ${C.b}`,
+          overflowY:"auto", padding:"5px 7px", display:"flex", flexDirection:"column", gap:0 }}>
+          {log.map(e => (
+            <div key={e.id} style={{ fontSize:11, lineHeight:1.55, color:logColor(e.cls),
+              fontWeight: e.cls==="crit"||e.cls==="level"||e.cls==="prestige" ? 600 : 400,
+              fontStyle: e.cls==="area" ? "italic" : "normal",
+              borderTop: e.cls==="area" ? `1px solid ${C.b}` : "none",
+              paddingTop: e.cls==="area" ? 2 : 0, marginTop: e.cls==="area" ? 1 : 0,
+              animation:"fadeIn .18s ease" }}>
+              {e.text}
+            </div>
+          ))}
+        </div>
+      </main>
+
+      {/* ── RIGHT PANEL ── */}
+      <aside style={{ background:C.panel, borderLeft:`1px solid ${C.b}`, display:"flex", flexDirection:"column", overflow:"hidden" }}>
+        {/* Tabs */}
+        <div style={{ display:"flex", borderBottom:`1px solid ${C.b}` }}>
+          {[["passive","Passives"],["upgrade","Upgrades"],["inventory","Inventory"]].map(([t, label]) => (
+            <button key={t} onClick={() => setTab(t)} style={{ flex:1, padding:"8px 0", fontSize:9,
+              fontFamily:"Cinzel,serif", letterSpacing:1, border:"none", cursor:"pointer",
+              background: tab===t ? C.bg2 : "transparent",
+              color: tab===t ? C.goldB : C.dim,
+              borderBottom: tab===t ? `2px solid ${C.gold}` : "2px solid transparent",
+              transition:"all .12s" }}>
+              {label}
+            </button>
+          ))}
+        </div>
+        <div style={{ flex:1, overflowY:"auto", padding:9 }}>
+          {tab === "passive"   && <PassiveTab   gs={gs} alloc={allocPassive} />}
+          {tab === "upgrade"   && <UpgradeTab   gs={gs} buy={buyUpgrade} ctot={ctot} />}
+          {tab === "inventory" && <InventoryTab gs={gs} equip={equipFromInv} />}
+        </div>
+      </aside>
+
+      {/* Notifications */}
+      <div style={{ position:"fixed", top:58, left:"50%", transform:"translateX(-50%)",
+        display:"flex", flexDirection:"column", gap:4, alignItems:"center",
+        pointerEvents:"none", zIndex:999 }}>
+        {notifs.map(n => (
+          <div key={n.id} style={{ background:"rgba(6,5,3,.97)",
+            border:`1px solid ${n.cls==="unique"?C.unique:n.cls==="level"?C.blue:n.cls==="prestige"?C.prestige:C.goldD}`,
+            padding:"5px 18px", fontFamily:"Cinzel,serif", fontSize:12, letterSpacing:2,
+            color:n.cls==="unique"?C.unique:n.cls==="level"?"#88aaff":n.cls==="prestige"?C.prestige:n.cls==="warn"?"#ff8844":C.goldB,
+            animation:"popIn .22s ease", boxShadow:"0 3px 18px rgba(0,0,0,.85)" }}>
+            {n.text}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── SHARED UI ─────────────────────────────────────────────────────────
+function PanelTitle({ children, style }) {
+  return (
+    <div style={{ fontFamily:"Cinzel,serif", fontSize:9, color:C.gold, letterSpacing:2,
+      textTransform:"uppercase", borderBottom:`1px solid ${C.b}`, paddingBottom:3, marginBottom:3, ...style }}>
+      {children}
+    </div>
+  );
+}
+
+function Badge({ label, val, color }) {
+  return (
+    <div style={{ display:"flex", alignItems:"center", gap:3, fontSize:11 }}>
+      <span style={{ color:C.dim }}>{label}</span>
+      <span style={{ color:color||C.gold, fontFamily:"Cinzel,serif", fontWeight:600 }}>{val}</span>
+    </div>
+  );
+}
+
+// ── PASSIVE TAB ───────────────────────────────────────────────────────
+function PassiveTab({ gs, alloc }) {
+  const canAlloc = n =>
+    !gs.allocated.has(n.id) && gs.passivePoints > 0 &&
+    (!n.req || n.req.some(r => gs.allocated.has(r)) || gs.allocated.size === 0);
+
+  return (
+    <div>
+      <div style={{ fontSize:11, color:C.dim, marginBottom:7 }}>
+        Points: <span style={{ color:C.gold, fontFamily:"Cinzel,serif", fontWeight:600 }}>{gs.passivePoints}</span>
+      </div>
+      {[0, 1, 2].map(row => {
+        const nodes = PASSIVES.filter(n => n.row === row);
+        return (
+          <div key={row} style={{ marginBottom:9 }}>
+            <div style={{ fontSize:9, color:C.dim, marginBottom:2, fontStyle:"italic" }}>
+              {["Basic Nodes","Notable Nodes","Keystones"][row]}
+            </div>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:3 }}>
+              {nodes.map(node => {
+                const al = gs.allocated.has(node.id);
+                const av = canAlloc(node);
+                return (
+                  <div key={node.id} onClick={() => av && alloc(node)}
+                    title={`${node.name}\n${node.desc}`}
+                    style={{ aspectRatio:"1",
+                      borderRadius: node.type==="keystone" ? 4 : node.type==="notable" ? "18%" : "50%",
+                      border:`2px solid ${al ? C.gold : av ? C.goldD : C.b}`,
+                      background: al ? `radial-gradient(circle,rgba(200,149,42,.28),rgba(200,149,42,.04))` : C.bg3,
+                      display:"flex", alignItems:"center", justifyContent:"center",
+                      fontSize:7, fontFamily:"Cinzel,serif", fontWeight:700,
+                      color: al ? C.goldB : av ? C.goldD : C.b,
+                      cursor: av ? "pointer" : "default",
+                      opacity: !al && !av ? 0.38 : 1,
+                      transition:"all .12s",
+                      boxShadow: al ? "0 0 8px rgba(200,149,42,.32)" : "none",
+                    }}>
+                    {node.short.slice(0, 6)}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+      {gs.allocated.size > 0 && (
+        <div style={{ marginTop:5 }}>
+          <PanelTitle>Allocated</PanelTitle>
+          {[...gs.allocated].map(id => {
+            const n = PASSIVES.find(x => x.id === id);
+            return n ? <div key={id} style={{ fontSize:10, color:C.goldB, padding:"1px 0" }}>✦ {n.name}</div> : null;
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── UPGRADE TAB ───────────────────────────────────────────────────────
+function UpgradeTab({ gs, buy, ctot }) {
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
+      <div style={{ fontSize:10, color:C.dim, marginBottom:2 }}>
+        Total currency: <span style={{ color:C.gold, fontFamily:"Cinzel,serif" }}>{fmt(ctot)}</span>
+      </div>
+      {UPGRADES.map(def => {
+        const lv    = gs.upgrades[def.id] || 0;
+        const cost  = upgC(def, lv);
+        const maxed = lv >= def.max;
+        const can   = !maxed && ctot >= cost;
+        const pct   = lv / def.max * 100;
+        return (
+          <div key={def.id} style={{ background:C.bg3, border:`1px solid ${can?C.goldD:C.b}`, borderRadius:3, padding:"6px 8px", transition:"border-color .12s" }}>
+            <div style={{ display:"flex", alignItems:"center", gap:5, marginBottom:3 }}>
+              <span style={{ fontSize:14 }}>{def.icon}</span>
+              <div style={{ flex:1 }}>
+                <div style={{ fontSize:10, color:maxed ? C.goldB : C.white, fontFamily:"Cinzel,serif" }}>{def.name}</div>
+                <div style={{ fontSize:9, color:C.dim, fontStyle:"italic" }}>{def.desc}</div>
+              </div>
+              <div style={{ fontFamily:"Cinzel,serif", fontSize:8, color:C.goldD }}>Lv{lv}/{def.max}</div>
+            </div>
+            <div style={{ height:3, background:C.bg2, border:`1px solid ${C.b}`, borderRadius:1, overflow:"hidden", marginBottom:4 }}>
+              <div style={{ height:"100%", width:pct+"%", background:maxed ? C.gold : `linear-gradient(90deg,${C.goldD},${C.gold})`, transition:"width .2s" }} />
+            </div>
+            <button onClick={() => buy(def)} disabled={!can} style={{ width:"100%", padding:"3px 0",
+              fontSize:9, fontFamily:"Cinzel,serif", letterSpacing:1,
+              background: maxed ? "transparent" : can ? `linear-gradient(135deg,#261600,#443000)` : "transparent",
+              border:`1px solid ${maxed?C.goldD:can?C.gold:C.b}`,
+              color: maxed ? C.gold : can ? C.goldB : C.b,
+              cursor: can ? "pointer" : "default", transition:"all .12s" }}>
+              {maxed ? "MAXED" : `${fmt(cost)} currency`}
+            </button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── INVENTORY TAB ─────────────────────────────────────────────────────
+function InventoryTab({ gs, equip }) {
+  return (
+    <div>
+      <div style={{ fontSize:10, color:C.dim, marginBottom:5 }}>{gs.inventory.length} / 20 slots</div>
+      <div style={{ display:"flex", flexDirection:"column", gap:3 }}>
+        {gs.inventory.map((item, i) => (
+          <div key={i} onClick={() => equip(i)} style={{ background:C.bg3,
+            border:`1px solid ${rarColor(item.rarity)+"88"}`, borderRadius:3, padding:"5px 7px", cursor:"pointer" }}>
+            <div style={{ fontSize:10, color:rarColor(item.rarity), fontWeight:item.rarity==="unique"?600:400 }}>
+              {item.name}
+            </div>
+            <div style={{ display:"flex", gap:6, marginTop:1, flexWrap:"wrap" }}>
+              <span style={{ fontSize:9, color:C.dim }}>{item.slot}</span>
+              {item.stats?.map((s, si) => <span key={si} style={{ fontSize:9, color:C.blue }}>{s}</span>)}
+            </div>
+            <div style={{ fontSize:8, color:C.goldD, marginTop:2, fontFamily:"Cinzel,serif" }}>▶ Equip</div>
+          </div>
+        ))}
+        {gs.inventory.length === 0 && (
+          <div style={{ fontSize:11, color:C.dim, fontStyle:"italic", textAlign:"center", padding:"20px 0" }}>No items</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── PRESTIGE MODAL ────────────────────────────────────────────────────
+function PrestigeModal({ gs, onPrestige, onBuy, onClose }) {
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.88)", zIndex:500,
+      display:"flex", alignItems:"center", justifyContent:"center" }}>
+      <div style={{ background:"#180e05", border:`2px solid ${C.prestige}`, padding:24,
+        maxWidth:460, width:"90%", boxShadow:`0 0 60px rgba(220,100,220,.22)`,
+        maxHeight:"80vh", overflowY:"auto", animation:"popIn .2s ease" }}>
+
+        <div style={{ fontFamily:"Cinzel,serif", fontSize:18, color:C.prestige, letterSpacing:3,
+          marginBottom:4, textAlign:"center", textShadow:"0 0 18px rgba(220,100,220,.5)" }}>
+          ✦ PRESTIGE ✦
+        </div>
+        <div style={{ fontSize:12, color:C.dim, marginBottom:14, textAlign:"center" }}>
+          Reset everything and grow exponentially stronger.<br/>
+          Prestige Points: <span style={{ color:C.prestige, fontFamily:"Cinzel,serif", fontSize:14 }}>{gs.prestigePts}</span>
+        </div>
+
+        <PanelTitle>Permanent Upgrades</PanelTitle>
+        <div style={{ display:"flex", flexDirection:"column", gap:5, marginBottom:14 }}>
+          {PRESTIGE_UPGRADES.map(pd => {
+            const cnt = (gs.pUpgrades || {})[pd.id] || 0;
+            const can = (gs.prestigePts || 0) >= pd.cost;
+            return (
+              <div key={pd.id} style={{ background:C.bg3, border:`1px solid ${can?C.prestige+"66":C.b}`,
+                borderRadius:3, padding:"7px 9px", display:"flex", alignItems:"center", gap:8 }}>
+                <span style={{ fontSize:16 }}>{pd.icon}</span>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:11, color:C.prestige, fontFamily:"Cinzel,serif" }}>
+                    {pd.name} {cnt > 0 && <span style={{ color:C.goldB }}>×{cnt}</span>}
+                  </div>
+                  <div style={{ fontSize:10, color:C.dim }}>{pd.desc}</div>
+                </div>
+                <button onClick={() => onBuy(pd)} disabled={!can} style={{ padding:"3px 9px",
+                  fontSize:9, fontFamily:"Cinzel,serif",
+                  background: can ? "rgba(100,0,110,.45)" : "transparent",
+                  border:`1px solid ${can?C.prestige:C.b}`, color:can?C.prestige:C.b,
+                  cursor:can?"pointer":"default" }}>
+                  {pd.cost}pt
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        <div style={{ display:"flex", gap:8 }}>
+          <button onClick={onPrestige} style={{ flex:1, padding:"9px 0", fontFamily:"Cinzel,serif",
+            fontSize:13, letterSpacing:2, background:"linear-gradient(135deg,#2a0030,#580060)",
+            border:`2px solid ${C.prestige}`, color:C.prestige, cursor:"pointer",
+            boxShadow:"0 0 18px rgba(220,100,220,.3)" }}>
+            ✦ PRESTIGE (costs 1pt)
+          </button>
+          <button onClick={onClose} style={{ padding:"9px 14px", fontFamily:"Cinzel,serif",
+            fontSize:11, background:"transparent", border:`1px solid ${C.b}`, color:C.dim, cursor:"pointer" }}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── OFFLINE REWARD MODAL ──────────────────────────────────────────────
+function OfflineModal({ data, onClose }) {
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.88)", zIndex:500,
+      display:"flex", alignItems:"center", justifyContent:"center" }}>
+      <div style={{ background:"#100c06", border:`2px solid ${C.goldB}`, padding:28,
+        maxWidth:380, width:"90%", boxShadow:"0 0 50px rgba(200,149,42,.3)",
+        animation:"popIn .22s ease", textAlign:"center" }}>
+        <div style={{ fontFamily:"Cinzel,serif", fontSize:16, color:C.goldB, letterSpacing:3, marginBottom:6 }}>
+          ⚔ OFFLINE REWARDS
+        </div>
+        <div style={{ fontSize:12, color:C.dim, marginBottom:16 }}>
+          You were away for {formatTime(data.seconds)}.
+        </div>
+        <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:20 }}>
+          <RewardRow icon="💀" label="Enemies Slain"  val={fmt(data.kills)} />
+          <RewardRow icon="💰" label="Currency Earned" val={fmt(data.currEarned) + " value"} />
+          <RewardRow icon="⬆" label="Experience"      val={fmt(data.expGained) + " EXP"} />
+        </div>
+        <button onClick={onClose} style={{ padding:"9px 32px", fontFamily:"Cinzel,serif",
+          fontSize:13, letterSpacing:2, background:`linear-gradient(135deg,#261600,#4a3000)`,
+          border:`2px solid ${C.gold}`, color:C.goldB, cursor:"pointer",
+          boxShadow:"0 0 16px rgba(200,149,42,.25)" }}>
+          CLAIM REWARDS
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function RewardRow({ icon, label, val }) {
+  return (
+    <div style={{ display:"flex", alignItems:"center", gap:10, background:C.bg3,
+      border:`1px solid ${C.b}`, borderRadius:3, padding:"7px 12px" }}>
+      <span style={{ fontSize:18 }}>{icon}</span>
+      <span style={{ flex:1, fontSize:12, color:C.dim, textAlign:"left" }}>{label}</span>
+      <span style={{ fontFamily:"Cinzel,serif", fontSize:13, color:C.goldB, fontWeight:600 }}>{val}</span>
+    </div>
+  );
+}
+
+function formatTime(sec) {
+  if (sec < 60) return `${sec}s`;
+  if (sec < 3600) return `${Math.floor(sec/60)}m ${sec%60}s`;
+  return `${Math.floor(sec/3600)}h ${Math.floor((sec%3600)/60)}m`;
+}
